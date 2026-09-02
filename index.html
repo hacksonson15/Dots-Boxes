@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dots & Boxes 3D Multiplayer</title>
+
+<!-- Appwrite Web SDK -->
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+
+<style>
+:root {
+  --bg:#080b18;
+  --bg2:#11182d;
+  --border:rgba(255,255,255,.14);
+  --text:#f8fafc;
+  --muted:#9aa8c7;
+  --accent:#72a7ff;
+  --accent2:#b77cff;
+  --blue:#3295ff;
+  --pink:#ff3eaa;
+  --shadow:0 25px 70px rgba(0,0,0,.55);
+}
+
+* {
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  user-select:none;
+}
+
+body {
+  min-height:100vh;
+  padding:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(65,130,255,.25),transparent 30%),
+    radial-gradient(circle at 90% 90%,rgba(200,50,255,.2),transparent 30%),
+    linear-gradient(135deg,var(--bg),var(--bg2));
+  overflow-x:hidden;
+}
+
+.hidden {
+  display:none!important;
+}
+
+.card,
+.game-container,
+.chat-container {
+  width:min(94vw,680px);
+  padding:32px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.13);
+  animation:cardIn .5s ease;
+}
+
+.card {
+  width:min(92vw,400px);
+}
+
+.game-container {
+  position:relative;
+  overflow:hidden;
+}
+
+@keyframes cardIn {
+  from { opacity:0;transform:translateY(20px) scale(.96); }
+  to { opacity:1;transform:translateY(0) scale(1); }
+}
+
+h1 {
+  width:100%;
+  padding-right:145px;
+  margin-bottom:22px;
+  text-align:left;
+  font-size:clamp(1.7rem,5vw,2.5rem);
+  letter-spacing:1px;
+  background:linear-gradient(90deg,#fff,var(--accent),var(--accent2));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+h2 {
+  margin-bottom:22px;
+  font-size:2rem;
+}
+
+p {
+  color:var(--muted);
+}
+
+input[type="text"],
+select {
+  width:100%;
+  padding:14px 16px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  outline:none;
+  color:white;
+  background:rgba(0,0,0,.25);
+  font-size:16px;
+}
+
+input[type="text"] {
+  margin:10px 0 18px;
+}
+
+input:focus,
+select:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(114,167,255,.14);
+}
+
+button {
+  width:100%;
+  margin:8px 0;
+  padding:14px 18px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  color:#07101e;
+  background:linear-gradient(135deg,#91bdff,var(--accent));
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s ease;
+  box-shadow:0 8px 0 #426da9,0 14px 26px rgba(64,135,255,.25);
+}
+
+button:hover {
+  transform:translateY(-3px);
+  filter:brightness(1.1);
+}
+
+button:active {
+  transform:translateY(4px);
+  box-shadow:0 3px 0 #426da9;
+}
+
+button:disabled {
+  background: gray !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-back {
+  color:white;
+  background:linear-gradient(135deg,#465273,#29334f);
+  box-shadow:0 8px 0 #1a2239,0 14px 25px rgba(0,0,0,.25);
+}
+
+#login-page::before {
+  content:"●  ●  ●";
+  display:block;
+  margin-bottom:24px;
+  color:var(--accent);
+  font-size:34px;
+  letter-spacing:14px;
+  text-shadow:35px 0 var(--accent2),70px 0 #ff3eaa;
+}
+
+.alert-info {
+  margin-bottom:16px;
+  padding:13px;
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  color:#dce8ff;
+  background:rgba(114,167,255,.12);
+}
+
+.game-toolbar {
+  position:absolute;
+  top:20px;
+  right:22px;
+  z-index:5;
+  display:flex;
+  gap:8px;
+}
+
+.icon-btn {
+  width:38px;
+  height:38px;
+  margin:0;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#eaf2ff;
+  background:linear-gradient(145deg,#35476c,#1a2744);
+  font-size:21px;
+  box-shadow:0 5px 0 #111b31,0 8px 15px rgba(0,0,0,.35);
+}
+
+.scoreboard {
+  display:flex;
+  width:100%;
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.score-card {
+  flex:1;
+  padding:15px;
+  border:2px solid transparent;
+  border-radius:18px;
+  background:rgba(255,255,255,.06);
+}
+
+.score-card.active-p1 {
+  border-color:#3295ff;
+  box-shadow:0 0 22px rgba(50,149,255,.4);
+}
+
+.score-card.active-p2 {
+  border-color:#ff3eaa;
+  box-shadow:0 0 22px rgba(255,62,170,.4);
+}
+
+.player-name {
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.score-val {
+  font-size:2rem;
+  font-weight:900;
+}
+
+.p1-text { color:#3295ff; }
+.p2-text { color:#ff3eaa; }
+
+.board {
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto;
+  padding:18px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(2,8,23,.62);
+}
+
+.board .row {
+  width:max-content;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.dot {
+  width:14px;
+  height:14px;
+  flex:0 0 14px;
+  z-index:2;
+  border-radius:50%;
+  background:#aebbd4;
+  box-shadow:0 0 0 3px rgba(255,255,255,.08),0 0 14px rgba(174,187,212,.6);
+}
+
+.h-line, .v-line {
+  z-index:1;
+  border-radius:8px;
+  background:#26344d;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.h-line:hover:not(.taken), .v-line:hover:not(.taken) {
+  background:#6680a9;
+  box-shadow:0 0 14px rgba(114,167,255,.8);
+}
+
+.h-line { height:12px; }
+.v-line { width:12px; }
+
+.grid-4 .h-line { width:56px; }
+.grid-4 .v-line { height:56px; }
+.grid-4 .box { width:56px;height:56px; }
+
+.line.taken.p1 {
+  background:linear-gradient(90deg,#1475e8,#6dbaff);
+  box-shadow:0 0 16px rgba(50,149,255,.8);
+  cursor:default;
+}
+
+.line.taken.p2 {
+  background:linear-gradient(90deg,#d51d83,#ff70c0);
+  box-shadow:0 0 16px rgba(255,62,170,.8);
+  cursor:default;
+}
+
+.box {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.04);
+  border-radius:7px;
+  font-size:1.15rem;
+  font-weight:900;
+}
+
+.box.filled-p1 {
+  color:#b8e0ff;
+  background:rgba(50,149,255,.45);
+}
+
+.box.filled-p2 {
+  color:#ffc1e4;
+  background:rgba(255,62,170,.45);
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);
+}
+
+.modal-content {
+  width:min(92vw,380px);
+  padding:34px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:25px;
+  background:linear-gradient(145deg,#293655,#151d34);
+}
+
+.chat-container {
+  height:min(86vh,720px);
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  text-align:left;
+}
+
+.chat-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 22px;
+  border-bottom:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.07);
+}
+
+.chat-header button {
+  width:auto;
+  margin:0;
+  padding:9px 14px;
+  font-size:14px;
+}
+
+.chat-messages {
+  flex:1;
+  min-height:0;
+  padding:22px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.chat-message {
+  max-width:78%;
+  padding:11px 14px;
+  border-radius:15px;
+  color:white;
+  word-wrap:break-word;
+  line-height:1.4;
+}
+
+.chat-message.mine {
+  align-self:flex-end;
+  border-bottom-right-radius:4px;
+  background:linear-gradient(135deg,#3295ff,#1767c7);
+}
+
+.chat-message.other {
+  align-self:flex-start;
+  border-bottom-left-radius:4px;
+  background:linear-gradient(135deg,#d51d83,#8d155a);
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="card">
+  <h2>Welcome Back</h2>
+  <p style="margin-bottom:18px;">Enter your player ID to continue</p>
+  <input type="text" id="user-id" placeholder="Enter Your ID">
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<!-- MAIN MENU -->
+<div id="main-menu" class="card hidden">
+  <h2 id="welcome-text">Welcome</h2>
+  <button onclick="showPage('leaderboard-page')">Play with Friend</button>
+</div>
+
+<!-- LEADERBOARD / COUPON -->
+<div id="leaderboard-page" class="card hidden">
+  <h2>Enter Code</h2>
+  <div id="status-alert" class="alert-info">
+    Enter a coupon code to connect with your friend.
+  </div>
+  <input type="text" id="coupon-code" placeholder="Enter Coupon Code">
+  <button id="submit-btn" onclick="submitCoupon()">Connect</button>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<!-- SECRET CHAT -->
+<div id="chat-page" class="chat-container hidden">
+  <div class="chat-header">
+    <strong>Chat Room</strong>
+    <button id="chat-play-btn">Play Game</button>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <form id="chat-form" style="display:flex; gap:10px; padding:14px; border-top:1px solid rgba(255,255,255,.14);">
+    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" style="margin:0;">
+    <button type="submit" style="width:auto; margin:0;">Send</button>
+  </form>
+</div>
+
+<!-- GAME -->
+<div id="game-page" class="game-container hidden">
+  <div class="game-toolbar">
+    <div style="font-size: 14px; font-weight: bold;" id="turn-indicator">Your Turn</div>
+  </div>
+  <h1>Dots & Boxes</h1>
+
+  <div class="scoreboard">
+    <div id="p1-card" class="score-card active-p1">
+      <div class="player-name p1-text">Player 1 (Blue)</div>
+      <div id="p1-score" class="score-val">0</div>
+    </div>
+    <div id="p2-card" class="score-card">
+      <div class="player-name p2-text">Player 2 (Pink)</div>
+      <div id="p2-score" class="score-val">0</div>
+    </div>
+  </div>
+
+  <div id="board" class="board grid-4"></div>
+  
+  <div class="controls" style="margin-top:20px;">
+      <p id="game-status-msg" style="color:var(--accent2); font-weight:bold;"></p>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="winner-title">Game Over</h2>
+    <p id="winner-msg"></p>
+    <button onclick="window.location.reload()">Exit Match</button>
+  </div>
+</div>
+
+<script>
+// ======== APPWRITE SETUP ========
+const { Client, Databases, ID, Query } = Appwrite;
+const client = new Client()
+    .setEndpoint('https://fra.cloud.appwrite.io/v1')
+    .setProject('6a98502b0023f61a6477');
+const databases = new Databases(client);
+const databaseId = '6a9853c300262f68c1fd';
+
+let loggedInUser = "";
+let roomDocId = "";
+let roomCode = "";
+let myRole = ""; // "p1" or "p2"
+let unsubscribeRoom = null;
+let unsubscribeMessages = null;
+
+// ======== GAME STATE ========
+const P1 = "p1";
+const P2 = "p2";
+let gridSize = 4;
+let currentPlayer = P1;
+let p1Score = 0;
+let p2Score = 0;
+let hLines = [];
+let vLines = [];
+let boxes = [];
+
+function showPage(pageId) {
+  const pages = ["login-page", "main-menu", "leaderboard-page", "chat-page", "game-page"];
+  pages.forEach(id => document.getElementById(id).classList.add("hidden"));
+  document.getElementById(pageId).classList.remove("hidden");
+}
+
+function login() {
+  const userId = document.getElementById("user-id").value.trim();
+  if (!userId) return alert("Pehle apni ID enter karein!");
+  loggedInUser = userId;
+  document.getElementById("welcome-text").textContent = "Welcome, " + userId;
+  showPage("main-menu");
+}
+
+async function submitCoupon() {
+  const code = document.getElementById("coupon-code").value.trim().toLowerCase();
+  if (!code) return alert("Please enter code!");
+  
+  roomCode = code;
+  const statusAlert = document.getElementById("status-alert");
+  const submitBtn = document.getElementById("submit-btn");
+  
+  statusAlert.textContent = "Checking code...";
+  submitBtn.disabled = true;
+
+  try {
+    let response = await databases.listDocuments(databaseId, 'rooms', [Query.equal('code', code)]);
+    
+    if (response.documents.length > 0) {
+      let room = response.documents[0];
+      roomDocId = room.$id;
+      
+      if (room.status === 'waiting' && room.player1 !== loggedInUser) {
+        // Join as Player 2
+        myRole = P2;
+        await databases.updateDocument(databaseId, 'rooms', roomDocId, {
+          player2: loggedInUser,
+          status: 'chat'
+        });
+        setupRealtimeSubscriptions();
+        openSecretChat();
+      } else if (room.player1 === loggedInUser || room.player2 === loggedInUser) {
+        // Rejoin
+        myRole = room.player1 === loggedInUser ? P1 : P2;
+        setupRealtimeSubscriptions();
+        if(room.status === 'playing') startGameUI();
+        else openSecretChat();
+      } else {
+        statusAlert.textContent = "Room is full!";
+        submitBtn.disabled = false;
+      }
+    } else {
+      // Create Room as Player 1
+      let newRoom = await databases.createDocument(databaseId, 'rooms', ID.unique(), {
+        code: code,
+        player1: loggedInUser,
+        status: 'waiting'
+      });
+      roomDocId = newRoom.$id;
+      myRole = P1;
+      statusAlert.textContent = "Waiting for other person to join with code: " + code;
+      setupRealtimeSubscriptions();
+    }
+  } catch (error) {
+    console.error(error);
+    statusAlert.textContent = "Error connecting.";
+    submitBtn.disabled = false;
+  }
+}
+
+function setupRealtimeSubscriptions() {
+  // Listen for Room changes (status, moves)
+  unsubscribeRoom = client.subscribe(`databases.${databaseId}.collections.rooms.documents.${roomDocId}`, response => {
+    const data = response.payload;
+    
+    // Status Changes
+    if (data.status === 'chat' && document.getElementById('chat-page').classList.contains('hidden') && document.getElementById('game-page').classList.contains('hidden')) {
+      openSecretChat();
+    }
+    if (data.status === 'playing' && document.getElementById('game-page').classList.contains('hidden')) {
+      startGameUI();
+    }
+    
+    // Move Sync
+    if (data.lastMove) {
+      const moveData = JSON.parse(data.lastMove);
+      if (moveData.player !== myRole) {
+        executeMoveLocal(moveData.type, moveData.r, moveData.c, moveData.player);
+      }
+    }
+  });
+
+  // Listen for Chat Messages
+  unsubscribeMessages = client.subscribe(`databases.${databaseId}.collections.messages.documents`, response => {
+    if(response.events.includes('databases.*.collections.messages.documents.*.create')) {
+      const msg = response.payload;
+      if (msg.code === roomCode && msg.sender !== loggedInUser) {
+        addChatMessage(msg.sender, msg.text, "other");
+      }
+    }
+  });
+}
+
+function openSecretChat() {
+  showPage("chat-page");
+  document.getElementById("chat-messages").innerHTML = "";
+  addChatMessage("System", "Match found! You are connected.", "other");
+}
+
+document.getElementById("chat-form").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const input = document.getElementById("chat-input");
+  const message = input.value.trim();
+  if (!message) return;
+
+  addChatMessage(loggedInUser, message, "mine");
+  input.value = "";
+
+  try {
+    await databases.createDocument(databaseId, 'messages', ID.unique(), {
+      code: roomCode,
+      sender: loggedInUser,
+      text: message
+    });
+  } catch(e) { console.error(e); }
+});
+
+function addChatMessage(sender, message, type) {
+  const container = document.getElementById("chat-messages");
+  const box = document.createElement("div");
+  box.className = "chat-message " + type;
+  box.innerHTML = `<small>${sender}</small><div>${message}</div>`;
+  container.appendChild(box);
+  container.scrollTop = container.scrollHeight;
+}
+
+document.getElementById("chat-play-btn").addEventListener("click", async function() {
+  try {
+    await databases.updateDocument(databaseId, 'rooms', roomDocId, { status: 'playing' });
+  } catch(e) { console.error(e); }
+});
+
+// ======== GAME LOGIC ========
+function startGameUI() {
+  showPage("game-page");
+  initGame();
+}
+
+function initGame() {
+  currentPlayer = P1;
+  p1Score = 0; p2Score = 0;
+  
+  hLines = Array.from({ length:gridSize + 1 }, () => Array(gridSize).fill(null));
+  vLines = Array.from({ length:gridSize }, () => Array(gridSize + 1).fill(null));
+  boxes = Array.from({ length:gridSize }, () => Array(gridSize).fill(null));
+
+  updateTurnUI();
+  renderBoard();
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById("board");
+  boardEl.innerHTML = "";
+  for (let r = 0; r <= gridSize; r++) {
+    const hRow = document.createElement("div");
+    hRow.className = "row";
+    for (let c = 0; c < gridSize; c++) {
+      hRow.innerHTML += `<div class="dot"></div>`;
+      const line = document.createElement("div");
+      line.className = "h-line line";
+      line.dataset.type = "h"; line.dataset.r = r; line.dataset.c = c;
+      line.addEventListener("click", handleLineClick);
+      hRow.appendChild(line);
+    }
+    hRow.innerHTML += `<div class="dot"></div>`;
+    boardEl.appendChild(hRow);
+
+    if (r < gridSize) {
+      const vRow = document.createElement("div");
+      vRow.className = "row";
+      for (let c = 0; c <= gridSize; c++) {
+        const line = document.createElement("div");
+        line.className = "v-line line";
+        line.dataset.type = "v"; line.dataset.r = r; line.dataset.c = c;
+        line.addEventListener("click", handleLineClick);
+        vRow.appendChild(line);
+        if (c < gridSize) {
+          vRow.innerHTML += `<div class="box" id="box-${r}-${c}"></div>`;
+        }
+      }
+      boardEl.appendChild(vRow);
+    }
+  }
+}
+
+async function handleLineClick(event) {
+  if (currentPlayer !== myRole) {
+      document.getElementById("game-status-msg").textContent = "It's not your turn!";
+      setTimeout(()=> document.getElementById("game-status-msg").textContent = "", 1500);
+      return;
+  }
+  
+  const type = event.target.dataset.type;
+  const r = parseInt(event.target.dataset.r);
+  const c = parseInt(event.target.dataset.c);
+  const lineArray = type === "h" ? hLines : vLines;
+  
+  if (lineArray[r][c] !== null) return; 
+
+  // Execute locally for instant feedback
+  executeMoveLocal(type, r, c, myRole);
+
+  // Sync with Appwrite
+  try {
+    await databases.updateDocument(databaseId, 'rooms', roomDocId, {
+      lastMove: JSON.stringify({ type, r, c, player: myRole })
+    });
+  } catch(e) { console.error(e); }
+}
+
+function executeMoveLocal(type, r, c, player) {
+  const lineArray = type === "h" ? hLines : vLines;
+  lineArray[r][c] = player;
+  
+  const lineElement = document.querySelector(`.line[data-type="${type}"][data-r="${r}"][data-c="${c}"]`);
+  if (lineElement) lineElement.classList.add("taken", player);
+
+  let completedBoxes = 0;
+  
+  // Check Boxes logic
+  const affected = type === "h" 
+    ? [{br:r-1, bc:c}, {br:r, bc:c}] 
+    : [{br:r, bc:c-1}, {br:r, bc:c}];
+
+  affected.forEach(({br, bc}) => {
+    if (br>=0 && br<gridSize && bc>=0 && bc<gridSize) {
+      let edges = 0;
+      if (hLines[br][bc]) edges++;
+      if (hLines[br+1][bc]) edges++;
+      if (vLines[br][bc]) edges++;
+      if (vLines[br][bc+1]) edges++;
+      
+      if (edges === 4 && boxes[br][bc] === null) {
+        boxes[br][bc] = player;
+        const boxEl = document.getElementById(`box-${br}-${bc}`);
+        boxEl.classList.add(`filled-${player}`);
+        boxEl.textContent = player === P1 ? "P1" : "P2";
+        completedBoxes++;
+      }
+    }
+  });
+
+  if (completedBoxes > 0) {
+    if (player === P1) p1Score += completedBoxes;
+    else p2Score += completedBoxes;
+    document.getElementById("p1-score").textContent = p1Score;
+    document.getElementById("p2-score").textContent = p2Score;
+  } else {
+    currentPlayer = currentPlayer === P1 ? P2 : P1;
+  }
+
+  updateTurnUI();
+  checkGameOver();
+}
+
+function updateTurnUI() {
+  document.getElementById("p1-card").classList.toggle("active-p1", currentPlayer === P1);
+  document.getElementById("p2-card").classList.toggle("active-p2", currentPlayer === P2);
+  
+  const indicator = document.getElementById("turn-indicator");
+  if (currentPlayer === myRole) {
+      indicator.textContent = "Your Turn!";
+      indicator.style.color = "#a6e3a1";
+  } else {
+      indicator.textContent = "Opponent's Turn...";
+      indicator.style.color = "var(--muted)";
+  }
+}
+
+function checkGameOver() {
+  if (p1Score + p2Score === gridSize * gridSize) {
+    const modal = document.getElementById("game-over-modal");
+    const title = document.getElementById("winner-title");
+    const msg = document.getElementById("winner-msg");
+    
+    if (p1Score > p2Score) {
+      title.textContent = myRole === P1 ? "You Won!" : "You Lost!";
+    } else if (p2Score > p1Score) {
+      title.textContent = myRole === P2 ? "You Won!" : "You Lost!";
+    } else {
+      title.textContent = "It's a Tie!";
+    }
+    
+    msg.textContent = `Final Score: P1(${p1Score}) - P2(${p2Score})`;
+    modal.style.display = "flex";
+  }
+}
+</script>
+</body>
+</html>
