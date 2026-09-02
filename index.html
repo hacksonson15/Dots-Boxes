@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dots & Boxes 3D - Multiplayer & Chat</title>
+
+<!-- Appwrite SDK CDN -->
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+
+<style>
+:root {
+  --bg:#080b18;
+  --bg2:#11182d;
+  --border:rgba(255,255,255,.14);
+  --text:#f8fafc;
+  --muted:#9aa8c7;
+  --accent:#72a7ff;
+  --accent2:#b77cff;
+  --blue:#3295ff;
+  --pink:#ff3eaa;
+  --shadow:0 25px 70px rgba(0,0,0,.55);
+}
+
+* {
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  user-select:none;
+}
+
+body {
+  min-height:100vh;
+  padding:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(65,130,255,.25),transparent 30%),
+    radial-gradient(circle at 90% 90%,rgba(200,50,255,.2),transparent 30%),
+    linear-gradient(135deg,var(--bg),var(--bg2));
+  overflow-x:hidden;
+}
+
+.hidden {
+  display:none!important;
+}
+
+.card,
+.game-container,
+.chat-container {
+  width:min(94vw,680px);
+  padding:32px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.13);
+  animation:cardIn .5s ease;
+}
+
+.card {
+  width:min(92vw,400px);
+}
+
+.game-container {
+  position:relative;
+  overflow:hidden;
+}
+
+@keyframes cardIn {
+  from { opacity:0;transform:translateY(20px) scale(.96); }
+  to { opacity:1;transform:translateY(0) scale(1); }
+}
+
+h1 {
+  width:100%;
+  padding-right:145px;
+  margin-bottom:22px;
+  text-align:left;
+  font-size:clamp(1.7rem,5vw,2.5rem);
+  letter-spacing:1px;
+  background:linear-gradient(90deg,#fff,var(--accent),var(--accent2));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+h2 {
+  margin-bottom:22px;
+  font-size:2rem;
+}
+
+p {
+  color:var(--muted);
+}
+
+input[type="text"],
+select {
+  width:100%;
+  padding:14px 16px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  outline:none;
+  color:white;
+  background:rgba(0,0,0,.25);
+  font-size:16px;
+}
+
+input[type="text"] {
+  margin:10px 0 18px;
+}
+
+input:focus,
+select:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(114,167,255,.14);
+}
+
+input::placeholder {
+  color:#71809e;
+}
+
+button {
+  width:100%;
+  margin:8px 0;
+  padding:14px 18px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  color:#07101e;
+  background:linear-gradient(135deg,#91bdff,var(--accent));
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s ease;
+  box-shadow:0 8px 0 #426da9,0 14px 26px rgba(64,135,255,.25);
+}
+
+button:hover {
+  transform:translateY(-3px);
+  filter:brightness(1.1);
+}
+
+button:active {
+  transform:translateY(4px);
+  box-shadow:0 3px 0 #426da9;
+}
+
+.btn-back {
+  color:white;
+  background:linear-gradient(135deg,#465273,#29334f);
+  box-shadow:0 8px 0 #1a2239,0 14px 25px rgba(0,0,0,.25);
+}
+
+#login-page::before {
+  content:"●  ●  ●";
+  display:block;
+  margin-bottom:24px;
+  color:var(--accent);
+  font-size:34px;
+  letter-spacing:14px;
+  text-shadow:35px 0 var(--accent2),70px 0 #ff3eaa;
+}
+
+#login-page h2 {
+  background:linear-gradient(90deg,#fff,var(--accent));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.setting-item {
+  margin:20px 0;
+  padding:16px;
+  text-align:left;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.045);
+}
+
+.toggle-container {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.color-options {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:14px;
+}
+
+.color-btn {
+  width:40px;
+  height:40px;
+  padding:0;
+  border:3px solid rgba(255,255,255,.75);
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.switch {
+  position:relative;
+  width:54px;
+  height:28px;
+}
+
+.switch input {
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider {
+  position:absolute;
+  inset:0;
+  cursor:pointer;
+  border-radius:30px;
+  background:#39445f;
+}
+
+.slider::before {
+  content:"";
+  position:absolute;
+  width:22px;
+  height:22px;
+  left:3px;
+  bottom:3px;
+  border-radius:50%;
+  background:white;
+  transition:.3s;
+}
+
+.switch input:checked + .slider {
+  background:var(--accent);
+}
+
+.switch input:checked + .slider::before {
+  transform:translateX(26px);
+}
+
+.alert-info {
+  margin-bottom:16px;
+  padding:13px;
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  color:#dce8ff;
+  background:rgba(114,167,255,.12);
+}
+
+.game-toolbar {
+  position:absolute;
+  top:20px;
+  right:22px;
+  z-index:5;
+  display:flex;
+  gap:8px;
+}
+
+.icon-btn {
+  width:38px;
+  height:38px;
+  margin:0;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#eaf2ff;
+  background:linear-gradient(145deg,#35476c,#1a2744);
+  font-size:21px;
+  box-shadow:0 5px 0 #111b31,0 8px 15px rgba(0,0,0,.35);
+}
+
+.setup-panel {
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:18px;
+  padding:14px 17px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+}
+
+.setup-panel label {
+  color:var(--muted);
+  font-weight:700;
+}
+
+.setup-panel select {
+  width:auto;
+  padding:9px 13px;
+  background:#26334f;
+}
+
+.scoreboard {
+  display:flex;
+  width:100%;
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.score-card {
+  flex:1;
+  padding:15px;
+  border:2px solid transparent;
+  border-radius:18px;
+  background:rgba(255,255,255,.06);
+}
+
+.score-card.active-p1 {
+  border-color:#3295ff;
+  box-shadow:0 0 22px rgba(50,149,255,.4);
+}
+
+.score-card.active-p2 {
+  border-color:#ff3eaa;
+  box-shadow:0 0 22px rgba(255,62,170,.4);
+}
+
+.player-name {
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.score-val {
+  font-size:2rem;
+  font-weight:900;
+}
+
+.p1-text { color:#3295ff; }
+.p2-text { color:#ff3eaa; }
+
+.board {
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto;
+  padding:18px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(2,8,23,.62);
+}
+
+.board .row {
+  width:max-content;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.dot {
+  width:14px;
+  height:14px;
+  flex:0 0 14px;
+  z-index:2;
+  border-radius:50%;
+  background:#aebbd4;
+  box-shadow:0 0 0 3px rgba(255,255,255,.08),0 0 14px rgba(174,187,212,.6);
+}
+
+.h-line,
+.v-line {
+  z-index:1;
+  border-radius:8px;
+  background:#26344d;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.h-line:hover:not(.taken),
+.v-line:hover:not(.taken) {
+  background:#6680a9;
+  box-shadow:0 0 14px rgba(114,167,255,.8);
+}
+
+.h-line { height:12px; }
+.v-line { width:12px; }
+
+.grid-3 .h-line { width:70px; }
+.grid-3 .v-line { height:70px; }
+.grid-3 .box { width:70px;height:70px; }
+
+.grid-4 .h-line { width:56px; }
+.grid-4 .v-line { height:56px; }
+.grid-4 .box { width:56px;height:56px; }
+
+.grid-5 .h-line { width:44px; }
+.grid-5 .v-line { height:44px; }
+.grid-5 .box { width:44px;height:44px; }
+
+.line.taken.p1 {
+  background:linear-gradient(90deg,#1475e8,#6dbaff);
+  box-shadow:0 0 16px rgba(50,149,255,.8);
+  cursor:default;
+}
+
+.line.taken.p2 {
+  background:linear-gradient(90deg,#d51d83,#ff70c0);
+  box-shadow:0 0 16px rgba(255,62,170,.8);
+  cursor:default;
+}
+
+.box {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.04);
+  border-radius:7px;
+  font-size:1.15rem;
+  font-weight:900;
+}
+
+.box.filled-p1 {
+  color:#b8e0ff;
+  background:rgba(50,149,255,.45);
+}
+
+.box.filled-p2 {
+  color:#ffc1e4;
+  background:rgba(255,62,170,.45);
+}
+
+.controls {
+  width:100%;
+  margin-top:22px;
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);
+}
+
+.modal-content {
+  width:min(92vw,380px);
+  padding:34px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:25px;
+  background:linear-gradient(145deg,#293655,#151d34);
+}
+
+.chat-container {
+  height:min(86vh,720px);
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  text-align:left;
+}
+
+.chat-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 22px;
+  border-bottom:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.07);
+}
+
+.chat-header button {
+  width:auto;
+  margin:0;
+  padding:9px 14px;
+  font-size:14px;
+}
+
+.chat-messages {
+  flex:1;
+  min-height:0;
+  padding:22px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.chat-message {
+  max-width:78%;
+  padding:11px 14px;
+  border-radius:15px;
+  color:white;
+  word-wrap:break-word;
+  line-height:1.4;
+}
+
+.chat-message.mine {
+  align-self:flex-end;
+  border-bottom-right-radius:4px;
+  background:linear-gradient(135deg,#3295ff,#1767c7);
+}
+
+.chat-message.other {
+  align-self:flex-start;
+  border-bottom-left-radius:4px;
+  background:linear-gradient(135deg,#d51d83,#8d155a);
+}
+
+.chat-message small {
+  display:block;
+  margin-bottom:4px;
+  color:rgba(255,255,255,.7);
+  font-size:11px;
+}
+
+.chat-input-area {
+  display:flex;
+  gap:10px;
+  padding:14px 18px;
+  border-top:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+}
+
+.chat-input-area input {
+  flex:1;
+  margin:0;
+}
+
+.chat-input-area button {
+  width:auto;
+  margin:0;
+  padding:12px 18px;
+}
+
+.waiting-box {
+  padding: 20px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  margin-top: 15px;
+}
+
+@media(max-width:560px) {
+  body { padding:10px; }
+  .card,.game-container { padding:22px 12px; border-radius:22px; }
+  .chat-container { width:96vw; height:88vh; }
+  .game-toolbar { top:15px; right:14px; }
+  .icon-btn { width:32px; height:32px; font-size:17px; }
+  h1 { padding-right:115px; font-size:1.65rem; }
+  .setup-panel { align-items:stretch; flex-direction:column; gap:9px; }
+  .setup-panel select { width:100%; }
+  .board { padding:12px; }
+  .dot { width:11px; height:11px; flex-basis:11px; }
+  .h-line { height:9px; }
+  .v-line { width:9px; }
+  .grid-3 .h-line { width:52px; } .grid-3 .v-line { height:52px; } .grid-3 .box { width:52px;height:52px; }
+  .grid-4 .h-line { width:40px; } .grid-4 .v-line { height:40px; } .grid-4 .box { width:40px;height:40px; }
+  .grid-5 .h-line { width:31px; } .grid-5 .v-line { height:31px; } .grid-5 .box { width:31px;height:31px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="card">
+  <h2>Welcome Back</h2>
+  <p style="margin-bottom:18px;">Enter your player ID to continue</p>
+  <input type="text" id="user-id" placeholder="Enter Your ID">
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<!-- MAIN MENU -->
+<div id="main-menu" class="card hidden">
+  <h2 id="welcome-text">Welcome</h2>
+  <button onclick="showPage('leaderboard-page')">Play Game / Enter Room</button>
+  <button onclick="showPage('settings-page')">Settings</button>
+  <button onclick="showPage('leaderboard-page')">Leaderboard</button>
+  <button onclick="quit()" style="
+    color:white;
+    background:linear-gradient(135deg,#ff7798,#db315b);
+    box-shadow:0 8px 0 #8d1d3d;
+  ">Quit</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-page" class="card hidden">
+  <h2>Settings</h2>
+  <div class="setting-item toggle-container">
+    <span>Sound Effects</span>
+    <label class="switch">
+      <input type="checkbox" id="sound-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="setting-item">
+    <label>Select Your Color:</label>
+    <div class="color-options">
+      <div class="color-btn" style="background:#a6e3a1" onclick="changeTheme('#a6e3a1','#111b13')"></div>
+      <div class="color-btn" style="background:#f38ba8" onclick="changeTheme('#f38ba8','#1f1315')"></div>
+      <div class="color-btn" style="background:#89b4fa" onclick="changeTheme('#89b4fa','#080b18')"></div>
+      <div class="color-btn" style="background:#fab387" onclick="changeTheme('#fab387','#241a15')"></div>
+      <div class="color-btn" style="background:#cba6f7" onclick="changeTheme('#cba6f7','#1b1324')"></div>
+    </div>
+  </div>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<!-- LEADERBOARD & MATCHMAKING -->
+<div id="leaderboard-page" class="card hidden">
+  <h2>Leaderboard Room</h2>
+
+  <p style="margin-bottom:10px;">Enter room coupon code:</p>
+  <input type="text" id="coupon-code" placeholder="Enter Coupon Code">
+  
+  <button id="btn-submit-coupon" onclick="submitCoupon()">Submit Code</button>
+
+  <div id="waiting-status" class="waiting-box hidden">
+    <p id="waiting-msg">Waiting for other person to enter code...</p>
+  </div>
+
+  <button class="btn-back" style="margin-top:15px;" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<!-- SECRET CHAT -->
+<div id="chat-page" class="chat-container hidden">
+  <div class="chat-header">
+    <strong>Chat Room</strong>
+    <button id="chat-play-btn" onclick="requestStartGame()">Play Game</button>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <form id="chat-form" class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<!-- GAME -->
+<div id="game-page" class="game-container hidden">
+  <div class="game-toolbar">
+    <button class="icon-btn" id="settings-icon" title="Settings">⚙</button>
+  </div>
+
+  <h1>Dots & Boxes</h1>
+
+  <div class="setup-panel">
+    <label for="grid-select">Grid Size</label>
+    <select id="grid-select" disabled>
+      <option value="4" selected>Medium — 4 × 4</option>
+    </select>
+  </div>
+
+  <div class="scoreboard">
+    <div id="p1-card" class="score-card active-p1">
+      <div class="player-name p1-text" id="p1-display-name">Player 1</div>
+      <div id="p1-score" class="score-val">0</div>
+    </div>
+
+    <div id="p2-card" class="score-card">
+      <div class="player-name p2-text" id="p2-display-name">Player 2</div>
+      <div id="p2-score" class="score-val">0</div>
+    </div>
+  </div>
+
+  <div id="board" class="board grid-4"></div>
+
+  <div class="controls">
+    <button class="btn-back" onclick="exitRoom()">Exit Room</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="winner-title">Game Over</h2>
+    <p id="winner-msg"></p>
+    <button onclick="showPage('chat-page')">Back to Chat</button>
+  </div>
+</div>
+
+<script>
+// --- APPWRITE CONFIGURATION ---
+const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = '6a97f431002b334a5076';
+const DATABASE_ID = '6a97f4830009cc420bb6';
+
+const COLLECTION_ROOMS = 'rooms';
+const COLLECTION_MESSAGES = 'messages';
+const COLLECTION_GAME = 'game_state';
+
+const { Client, Databases, Query, ID, Permission, Role } = Appwrite;
+const client = new Client()
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID);
+
+const databases = new Databases(client);
+
+// Open Permissions for Guest Access without strict Collection Rules
+const OPEN_PERMISSIONS = [
+  Permission.read(Role.any()),
+  Permission.write(Role.any()),
+  Permission.update(Role.any()),
+  Permission.delete(Role.any())
+];
+
+// --- GLOBAL VARIABLES ---
+let loggedInUser = "";
+let currentRoomDoc = null;
+let myRole = ""; // "p1" or "p2"
+let roomUnsubscribe = null;
+let chatUnsubscribe = null;
+let gameUnsubscribe = null;
+
+const P1 = "p1";
+const P2 = "p2";
+let gridSize = 4;
+let currentPlayer = P1;
+let p1Score = 0;
+let p2Score = 0;
+let hLines = [];
+let vLines = [];
+let boxes = [];
+
+const gamePage = document.getElementById("game-page");
+const boardEl = document.getElementById("board");
+const p1ScoreEl = document.getElementById("p1-score");
+const p2ScoreEl = document.getElementById("p2-score");
+const p1Card = document.getElementById("p1-card");
+const p2Card = document.getElementById("p2-card");
+const modal = document.getElementById("game-over-modal");
+const winnerTitle = document.getElementById("winner-title");
+const winnerMsg = document.getElementById("winner-msg");
+
+const chatMessages = document.getElementById("chat-messages");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+
+function login() {
+  const userId = document.getElementById("user-id").value.trim();
+  if (!userId) {
+    alert("Pehle apni ID enter karein!");
+    return;
+  }
+  loggedInUser = userId;
+  document.getElementById("welcome-text").textContent = "Welcome, " + userId;
+  showPage("main-menu");
+}
+
+function quit() {
+  exitRoom();
+  document.getElementById("user-id").value = "";
+  loggedInUser = "";
+  showPage("login-page");
+}
+
+function showPage(pageId) {
+  const pages = ["login-page", "main-menu", "settings-page", "leaderboard-page", "chat-page", "game-page"];
+  pages.forEach(id => document.getElementById(id).classList.add("hidden"));
+  document.getElementById(pageId).classList.remove("hidden");
+}
+
+function changeTheme(accentColor, backgroundColor) {
+  document.documentElement.style.setProperty("--accent", accentColor);
+  document.documentElement.style.setProperty("--bg", backgroundColor);
+}
+
+// --- MATCHMAKING & LEADERBOARD SYSTEM ---
+async function submitCoupon() {
+  const code = document.getElementById("coupon-code").value.trim().toLowerCase();
+  if (!code) {
+    alert("Khas coupon code enter karein.");
+    return;
+  }
+
+  document.getElementById("btn-submit-coupon").disabled = true;
+  document.getElementById("waiting-status").classList.remove("hidden");
+
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ROOMS,
+      [Query.equal("coupon_code", code)]
+    );
+
+    if (response.documents.length === 0) {
+      // Pehla banda coupon code enter kar raha hai -> Create Room
+      myRole = "p1";
+      currentRoomDoc = await databases.createDocument(
+        DATABASE_ID,
+        COLLECTION_ROOMS,
+        ID.unique(),
+        {
+          coupon_code: code,
+          player1: loggedInUser,
+          player2: "",
+          status: "waiting",
+          game_started: false
+        },
+        OPEN_PERMISSIONS
+      );
+      subscribeToRoom(currentRoomDoc.$id);
+    } else {
+      // Room majood hai -> Join Room
+      let room = response.documents[0];
+      if (room.player1 === loggedInUser) {
+        myRole = "p1";
+        currentRoomDoc = room;
+        if (room.status === "ready") {
+          enterChatRoom();
+        } else {
+          subscribeToRoom(room.$id);
+        }
+      } else if (room.player2 === "" || room.player2 === loggedInUser) {
+        myRole = "p2";
+        currentRoomDoc = await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTION_ROOMS,
+          room.$id,
+          { player2: loggedInUser, status: "ready" },
+          OPEN_PERMISSIONS
+        );
+        subscribeToRoom(room.$id);
+        enterChatRoom();
+      } else {
+        alert("Yeh Room already full hai!");
+        document.getElementById("btn-submit-coupon").disabled = false;
+        document.getElementById("waiting-status").classList.add("hidden");
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Error joining room: " + error.message);
+    document.getElementById("btn-submit-coupon").disabled = false;
+    document.getElementById("waiting-status").classList.add("hidden");
+  }
+}
+
+function subscribeToRoom(roomId) {
+  if (roomUnsubscribe) roomUnsubscribe();
+
+  roomUnsubscribe = client.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_ROOMS}.documents.${roomId}`,
+    response => {
+      currentRoomDoc = response.payload;
+      if (currentRoomDoc.status === "ready" && myRole === "p1") {
+        enterChatRoom();
+      }
+      if (currentRoomDoc.game_started) {
+        openGameMultiplayer();
+      }
+    }
+  );
+}
+
+function enterChatRoom() {
+  document.getElementById("waiting-status").classList.add("hidden");
+  document.getElementById("btn-submit-coupon").disabled = false;
+  showPage("chat-page");
+  chatMessages.innerHTML = "";
+  addChatMessage("System", "Both players connected to room!", "other");
+  subscribeToChat(currentRoomDoc.$id);
+}
+
+// --- CHATTING SYSTEM ---
+function subscribeToChat(roomId) {
+  if (chatUnsubscribe) chatUnsubscribe();
+
+  chatUnsubscribe = client.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_MESSAGES}.documents`,
+    response => {
+      if (response.payload.room_id === roomId) {
+        if (response.payload.sender !== loggedInUser) {
+          addChatMessage(response.payload.sender, response.payload.text, "other");
+        }
+      }
+    }
+  );
+}
+
+function addChatMessage(sender, message, type) {
+  const messageBox = document.createElement("div");
+  messageBox.className = "chat-message " + type;
+
+  const senderName = document.createElement("small");
+  senderName.textContent = sender;
+
+  const messageText = document.createElement("div");
+  messageText.textContent = message;
+
+  messageBox.appendChild(senderName);
+  messageBox.appendChild(messageText);
+  chatMessages.appendChild(messageBox);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+chatForm.addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message || !currentRoomDoc) return;
+
+  addChatMessage(loggedInUser, message, "mine");
+  chatInput.value = "";
+
+  try {
+    await databases.createDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      ID.unique(),
+      {
+        room_id: currentRoomDoc.$id,
+        sender: loggedInUser,
+        text: message
+      },
+      OPEN_PERMISSIONS
+    );
+  } catch (err) {
+    console.error("Chat send error:", err);
+  }
+});
+
+// --- GAME REDIRECT & MULTIPLAYER ---
+async function requestStartGame() {
+  if (!currentRoomDoc) return;
+
+  try {
+    // Game State Record banayein ya reset karein
+    await databases.createDocument(
+      DATABASE_ID,
+      COLLECTION_GAME,
+      currentRoomDoc.$id,
+      {
+        room_id: currentRoomDoc.$id,
+        turn: P1,
+        h_lines: JSON.stringify(Array.from({ length: 5 }, () => Array(4).fill(null))),
+        v_lines: JSON.stringify(Array.from({ length: 4 }, () => Array(5).fill(null))),
+        boxes: JSON.stringify(Array.from({ length: 4 }, () => Array(4).fill(null))),
+        p1_score: 0,
+        p2_score: 0
+      },
+      OPEN_PERMISSIONS
+    ).catch(async () => {
+      // agar document pehle se bana hua hai to update karein
+      await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTION_GAME,
+        currentRoomDoc.$id,
+        {
+          turn: P1,
+          h_lines: JSON.stringify(Array.from({ length: 5 }, () => Array(4).fill(null))),
+          v_lines: JSON.stringify(Array.from({ length: 4 }, () => Array(5).fill(null))),
+          boxes: JSON.stringify(Array.from({ length: 4 }, () => Array(4).fill(null))),
+          p1_score: 0,
+          p2_score: 0
+        },
+        OPEN_PERMISSIONS
+      );
+    });
+
+    // Update Room Document -> redirect both players
+    await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTION_ROOMS,
+      currentRoomDoc.$id,
+      {
+        game_started: true
+      },
+      OPEN_PERMISSIONS
+    );
+  } catch (e) {
+    console.error("Game Redirect Error:", e);
+  }
+}
+
+function openGameMultiplayer() {
+  showPage("game-page");
+  
+  document.getElementById("p1-display-name").textContent = currentRoomDoc.player1 + " (Blue)";
+  document.getElementById("p2-display-name").textContent = (currentRoomDoc.player2 || "Player 2") + " (Pink)";
+
+  initLocalGameData();
+  subscribeToGame(currentRoomDoc.$id);
+}
+
+function initLocalGameData() {
+  gridSize = 4;
+  p1Score = 0;
+  p2Score = 0;
+  p1ScoreEl.textContent = "0";
+  p2ScoreEl.textContent = "0";
+  modal.style.display = "none";
+  currentPlayer = P1;
+
+  hLines = Array.from({ length: gridSize + 1 }, () => Array(gridSize).fill(null));
+  vLines = Array.from({ length: gridSize }, () => Array(gridSize + 1).fill(null));
+  boxes = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+
+  updateTurnUI();
+  renderBoard();
+}
+
+function subscribeToGame(roomId) {
+  if (gameUnsubscribe) gameUnsubscribe();
+
+  gameUnsubscribe = client.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_GAME}.documents.${roomId}`,
+    response => {
+      const data = response.payload;
+      syncGameState(data);
+    }
+  );
+}
+
+function syncGameState(data) {
+  p1Score = data.p1_score;
+  p2Score = data.p2_score;
+  currentPlayer = data.turn;
+  hLines = JSON.parse(data.h_lines);
+  vLines = JSON.parse(data.v_lines);
+  boxes = JSON.parse(data.boxes);
+
+  p1ScoreEl.textContent = p1Score;
+  p2ScoreEl.textContent = p2Score;
+  updateTurnUI();
+  renderBoard();
+  checkGameOver();
+}
+
+function renderBoard() {
+  boardEl.innerHTML = "";
+  boardEl.className = "board grid-" + gridSize;
+
+  for (let r = 0; r <= gridSize; r++) {
+    const hRow = document.createElement("div");
+    hRow.className = "row";
+
+    for (let c = 0; c < gridSize; c++) {
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      hRow.appendChild(dot);
+
+      const line = document.createElement("div");
+      line.className = "h-line line";
+      if (hLines[r][c]) {
+        line.classList.add("taken", hLines[r][c]);
+      }
+      line.dataset.type = "h";
+      line.dataset.r = r;
+      line.dataset.c = c;
+      line.addEventListener("click", handleLineClick);
+      hRow.appendChild(line);
+    }
+
+    const lastDot = document.createElement("div");
+    lastDot.className = "dot";
+    hRow.appendChild(lastDot);
+    boardEl.appendChild(hRow);
+
+    if (r < gridSize) {
+      const vRow = document.createElement("div");
+      vRow.className = "row";
+
+      for (let c = 0; c <= gridSize; c++) {
+        const line = document.createElement("div");
+        line.className = "v-line line";
+        if (vLines[r][c]) {
+          line.classList.add("taken", vLines[r][c]);
+        }
+        line.dataset.type = "v";
+        line.dataset.r = r;
+        line.dataset.c = c;
+        line.addEventListener("click", handleLineClick);
+        vRow.appendChild(line);
+
+        if (c < gridSize) {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.id = `box-${r}-${c}`;
+          if (boxes[r][c]) {
+            box.classList.add(`filled-${boxes[r][c]}`);
+            box.textContent = boxes[r][c] === P1 ? "P1" : "P2";
+          }
+          vRow.appendChild(box);
+        }
+      }
+      boardEl.appendChild(vRow);
+    }
+  }
+}
+
+async function handleLineClick(event) {
+  if (myRole !== currentPlayer) {
+    alert("Yeh aapki turn nahi hai!");
+    return;
+  }
+
+  const type = event.target.dataset.type;
+  const r = parseInt(event.target.dataset.r);
+  const c = parseInt(event.target.dataset.c);
+
+  const lineArray = type === "h" ? hLines : vLines;
+  if (lineArray[r][c] !== null) return;
+
+  lineArray[r][c] = myRole;
+
+  let completed = checkBoxesLocally(type, r, c, myRole);
+  let nextTurn = currentPlayer;
+
+  if (completed > 0) {
+    if (myRole === P1) p1Score += completed;
+    else p2Score += completed;
+  } else {
+    nextTurn = currentPlayer === P1 ? P2 : P1;
+  }
+
+  // Push updated state to Appwrite Database
+  try {
+    await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTION_GAME,
+      currentRoomDoc.$id,
+      {
+        turn: nextTurn,
+        h_lines: JSON.stringify(hLines),
+        v_lines: JSON.stringify(vLines),
+        boxes: JSON.stringify(boxes),
+        p1_score: p1Score,
+        p2_score: p2Score
+      },
+      OPEN_PERMISSIONS
+    );
+  } catch (err) {
+    console.error("Error pushing move:", err);
+  }
+}
+
+function checkBoxesLocally(type, r, c, player) {
+  let completed = 0;
+  getAffectedBoxes(type, r, c).forEach(({br, bc}) => {
+    if (boxes[br][bc] === null && getBoxEdgeCount(br, bc) === 4) {
+      boxes[br][bc] = player;
+      completed++;
+    }
+  });
+  return completed;
+}
+
+function getAffectedBoxes(type, r, c) {
+  const result = [];
+  if (type === "h") {
+    if (r > 0) result.push({br:r - 1, bc:c});
+    if (r < gridSize) result.push({br:r, bc:c});
+  } else {
+    if (c > 0) result.push({br:r, bc:c - 1});
+    if (c < gridSize) result.push({br:r, bc:c});
+  }
+  return result;
+}
+
+function getBoxEdgeCount(r, c) {
+  let count = 0;
+  if (hLines[r][c] !== null) count++;
+  if (hLines[r + 1][c] !== null) count++;
+  if (vLines[r][c] !== null) count++;
+  if (vLines[r][c + 1] !== null) count++;
+  return count;
+}
+
+function updateTurnUI() {
+  p1Card.classList.toggle("active-p1", currentPlayer === P1);
+  p2Card.classList.toggle("active-p2", currentPlayer === P2);
+}
+
+function checkGameOver() {
+  if (p1Score + p2Score !== gridSize * gridSize) {
+    return false;
+  }
+
+  if (p1Score > p2Score) {
+    winnerTitle.textContent = "Player 1 Won!";
+    winnerMsg.textContent = `${currentRoomDoc.player1} won the game (${p1Score} - ${p2Score})!`;
+  } else if (p2Score > p1Score) {
+    winnerTitle.textContent = "Player 2 Won!";
+    winnerMsg.textContent = `${currentRoomDoc.player2 || 'Player 2'} won the game (${p2Score} - ${p1Score})!`;
+  } else {
+    winnerTitle.textContent = "It's a Tie!";
+    winnerMsg.textContent = `Game tied ${p1Score} - ${p2Score}!`;
+  }
+
+  modal.style.display = "flex";
+  return true;
+}
+
+async function exitRoom() {
+  if (roomUnsubscribe) roomUnsubscribe();
+  if (chatUnsubscribe) chatUnsubscribe();
+  if (gameUnsubscribe) gameUnsubscribe();
+
+  currentRoomDoc = null;
+  myRole = "";
+  showPage("main-menu");
+}
+
+document.getElementById("settings-icon").addEventListener("click", () => {
+  showPage("settings-page");
+});
+</script>
+
+</body>
+</html>
