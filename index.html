@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Appwrite Realtime Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Auth Styles */
+    .auth-box {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      justify-content: center;
+      height: 100%;
+    }
+
+    .auth-box h2 {
+      text-align: center;
+      color: #38bdf8;
+      margin-bottom: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    input {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #fff;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      border-color: #38bdf8;
+    }
+
+    button {
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0284c7;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0369a1;
+    }
+
+    .toggle-text {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+
+    .toggle-text span {
+      color: #38bdf8;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Chat Styles */
+    .chat-header {
+      padding: 15px 20px;
+      background: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+
+    .chat-header h3 {
+      color: #38bdf8;
+      font-size: 1.1rem;
+    }
+
+    .logout-btn {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      background: #ef4444;
+    }
+
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .message.received {
+      background: #334155;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    .message.sent {
+      background: #0284c7;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .message .sender {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      margin-bottom: 3px;
+      font-weight: bold;
+    }
+
+    .chat-input {
+      padding: 15px;
+      background: #0f172a;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid #334155;
+    }
+
+    .chat-input input {
+      flex: 1;
+    }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div id="auth-section" class="auth-box">
+      <h2 id="auth-title">Login</h2>
+      
+      <div id="name-group" class="input-group hidden">
+        <label>Full Name</label>
+        <input type="text" id="name" placeholder="Enter your name" />
+      </div>
+
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="Enter your email" />
+      </div>
+
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password (min 8 chars)" />
+      </div>
+
+      <button id="auth-btn" onclick="handleAuth()">Login</button>
+      <div id="error-msg" class="error-msg"></div>
+
+      <p class="toggle-text">
+        <span id="toggle-msg">Don't have an account?</span>
+        <span id="toggle-link" onclick="toggleAuthMode()">Sign Up</span>
+      </p>
+    </div>
+
+    <div id="chat-section" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
+      <div class="chat-header">
+        <div>
+          <h3 id="user-display">Chat Room</h3>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+
+      <div class="chat-messages" id="messages-container"></div>
+
+      <form class="chat-input" onsubmit="sendMessage(event)">
+        <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Appwrite Configuration
+    const { Client, Account, Databases, ID, Query } = Appwrite;
+
+    const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
+    const APPWRITE_PROJECT_ID = '6a98502b0023f61a6477';
+    const DATABASE_ID = '6a9853c300262f68c1fd';
+    const USERS_COLLECTION_ID = '6a990804002d027949b1';
+    const MESSAGES_COLLECTION_ID = '6a990842002c367a9676';
+
+    const client = new Client()
+      .setEndpoint(APPWRITE_ENDPOINT)
+      .setProject(APPWRITE_PROJECT_ID);
+
+    const account = new Account(client);
+    const databases = new Databases(client);
+
+    let isSignUp = false;
+    let currentUser = null;
+    let unsubscribeRealtime = null;
+
+    // Check existing active session on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        currentUser = await account.get();
+        showChatScreen();
+      } catch (err) {
+        showAuthScreen();
+      }
+    });
+
+    function toggleAuthMode() {
+      isSignUp = !isSignUp;
+      document.getElementById('auth-title').innerText = isSignUp ? 'Sign Up' : 'Login';
+      document.getElementById('auth-btn').innerText = isSignUp ? 'Sign Up' : 'Login';
+      document.getElementById('name-group').classList.toggle('hidden', !isSignUp);
+      document.getElementById('toggle-msg').innerText = isSignUp ? 'Already have an account?' : "Don't have an account?";
+      document.getElementById('toggle-link').innerText = isSignUp ? 'Login' : 'Sign Up';
+      document.getElementById('error-msg').innerText = '';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const errorEl = document.getElementById('error-msg');
+      errorEl.innerText = '';
+
+      if (!email || !password || (isSignUp && !name)) {
+        errorEl.innerText = 'Please fill in all fields.';
+        return;
+      }
+
+      try {
+        // Delete active session first to prevent session active error
+        try {
+          await account.deleteSession('current');
+        } catch (e) {
+          // No active session existed
+        }
+
+        if (isSignUp) {
+          const newUserId = ID.unique();
+          await account.create(newUserId, email, password, name);
+          await account.createEmailPasswordSession(email, password);
+          
+          await databases.createDocument(
+            DATABASE_ID,
+            USERS_COLLECTION_ID,
+            ID.unique(),
+            { userId: newUserId, name: name }
+          );
+        } else {
+          await account.createEmailPasswordSession(email, password);
+        }
+
+        currentUser = await account.get();
+        showChatScreen();
+      } catch (err) {
+        errorEl.innerText = err.message || 'Authentication failed.';
+      }
+    }
+
+    async function logout() {
+      try {
+        await account.deleteSession('current');
+        if (unsubscribeRealtime) unsubscribeRealtime();
+        currentUser = null;
+        showAuthScreen();
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
+
+    function showAuthScreen() {
+      document.getElementById('auth-section').classList.remove('hidden');
+      document.getElementById('chat-section').classList.add('hidden');
+    }
+
+    async function showChatScreen() {
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('chat-section').classList.remove('hidden');
+      document.getElementById('user-display').innerText = `Logged in as: ${currentUser.name}`;
+
+      await loadMessages();
+      subscribeToRealtime();
+    }
+
+    async function loadMessages() {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = '';
+
+      try {
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          MESSAGES_COLLECTION_ID,
+          [Query.orderAsc('$createdAt'), Query.limit(100)]
+        );
+
+        response.documents.forEach(renderMessage);
+        scrollToBottom();
+      } catch (err) {
+        console.error('Error loading messages:', err);
+      }
+    }
+
+    function renderMessage(msg) {
+      const container = document.getElementById('messages-container');
+      const isSent = msg.senderId === currentUser.$id;
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+      msgDiv.id = `msg-${msg.$id}`;
+
+      if (!isSent) {
+        const senderDiv = document.createElement('div');
+        senderDiv.className = 'sender';
+        senderDiv.innerText = msg.senderName;
+        msgDiv.appendChild(senderDiv);
+      }
+
+      const textDiv = document.createElement('div');
+      textDiv.innerText = msg.text;
+      msgDiv.appendChild(textDiv);
+
+      container.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    async function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      input.value = '';
+
+      try {
+        await databases.createDocument(
+          DATABASE_ID,
+          MESSAGES_COLLECTION_ID,
+          ID.unique(),
+          {
+            senderId: currentUser.$id,
+            senderName: currentUser.name,
+            text: text
+          }
+        );
+      } catch (err) {
+        console.error('Error sending message:', err);
+      }
+    }
+
+    function subscribeToRealtime() {
+      const channel = `databases.${DATABASE_ID}.collections.${MESSAGES_COLLECTION_ID}.documents`;
+
+      unsubscribeRealtime = client.subscribe(channel, (response) => {
+        if (response.events.some(e => e.includes('.create'))) {
+          const newMsg = response.payload;
+          if (!document.getElementById(`msg-${newMsg.$id}`)) {
+            renderMessage(newMsg);
+          }
+        }
+      });
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('messages-container');
+      container.scrollTop = container.scrollHeight;
+    }
+  </script>
+</body>
+</html>
