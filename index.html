@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dots & Boxes 3D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/appwrite/15.0.0/sdk.esm.js" type="module" id="appwrite-sdk"></script>
+<style>
+:root {
+  --bg:#080b18;
+  --bg2:#11182d;
+  --border:rgba(255,255,255,.14);
+  --text:#f8fafc;
+  --muted:#9aa8c7;
+  --accent:#72a7ff;
+  --accent2:#b77cff;
+  --blue:#3295ff;
+  --pink:#ff3eaa;
+  --shadow:0 25px 70px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none}
+body{min-height:100vh;padding:20px;display:flex;align-items:center;justify-content:center;color:var(--text);font-family:"Segoe UI",Arial,sans-serif;background:radial-gradient(circle at 10% 10%,rgba(65,130,255,.25),transparent 30%),radial-gradient(circle at 90% 90%,rgba(200,50,255,.2),transparent 30%),linear-gradient(135deg,var(--bg),var(--bg2));overflow-x:hidden}
+.hidden{display:none!important}
+.card,.game-container,.chat-container{width:min(94vw,680px);padding:32px;text-align:center;border:1px solid var(--border);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.13);animation:cardIn .5s ease}
+.card{width:min(92vw,400px)}
+.game-container{position:relative;overflow:hidden}
+@keyframes cardIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+h1{width:100%;padding-right:145px;margin-bottom:22px;text-align:left;font-size:clamp(1.7rem,5vw,2.5rem);letter-spacing:1px;background:linear-gradient(90deg,#fff,var(--accent),var(--accent2));-webkit-background-clip:text;color:transparent}
+h2{margin-bottom:22px;font-size:2rem}
+p{color:var(--muted)}
+input[type="text"],select{width:100%;padding:14px 16px;border:1px solid rgba(255,255,255,.16);border-radius:14px;outline:none;color:white;background:rgba(0,0,0,.25);font-size:16px}
+input[type="text"]{margin:10px 0 18px}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(114,167,255,.14)}
+input::placeholder{color:#71809e}
+button{width:100%;margin:8px 0;padding:14px 18px;border:1px solid rgba(255,255,255,.18);border-radius:14px;color:#07101e;background:linear-gradient(135deg,#91bdff,var(--accent));font-size:16px;font-weight:800;cursor:pointer;transition:.2s ease;box-shadow:0 8px 0 #426da9,0 14px 26px rgba(64,135,255,.25)}
+button:hover{transform:translateY(-3px);filter:brightness(1.1)}
+button:active{transform:translateY(4px);box-shadow:0 3px 0 #426da9}
+.btn-back{color:white;background:linear-gradient(135deg,#465273,#29334f);box-shadow:0 8px 0 #1a2239,0 14px 25px rgba(0,0,0,.25)}
+#login-page::before{content:"● ● ●";display:block;margin-bottom:24px;color:var(--accent);font-size:34px;letter-spacing:14px;text-shadow:35px 0 var(--accent2),70px 0 #ff3eaa}
+#login-page h2{background:linear-gradient(90deg,#fff,var(--accent));-webkit-background-clip:text;color:transparent}
+.setting-item{margin:20px 0;padding:16px;text-align:left;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.045)}
+.toggle-container{display:flex;align-items:center;justify-content:space-between}
+.color-options{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+.color-btn{width:40px;height:40px;padding:0;border:3px solid rgba(255,255,255,.75);border-radius:50%;cursor:pointer}
+.switch{position:relative;width:54px;height:28px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;cursor:pointer;border-radius:30px;background:#39445f}
+.slider::before{content:"";position:absolute;width:22px;height:22px;left:3px;bottom:3px;border-radius:50%;background:white;transition:.3s}
+.switch input:checked+.slider{background:var(--accent)}
+.switch input:checked+.slider::before{transform:translateX(26px)}
+.alert-info{margin-bottom:16px;padding:13px;border-left:4px solid var(--accent);border-radius:12px;color:#dce8ff;background:rgba(114,167,255,.12)}
+.game-toolbar{position:absolute;top:20px;right:22px;z-index:5;display:flex;gap:8px}
+.icon-btn{width:38px;height:38px;margin:0;padding:0;display:flex;align-items:center;justify-content:center;color:#eaf2ff;background:linear-gradient(145deg,#35476c,#1a2744);font-size:21px;box-shadow:0 5px 0 #111b31,0 8px 15px rgba(0,0,0,.35)}
+.setup-panel{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px;padding:14px 17px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.06)}
+.setup-panel label{color:var(--muted);font-weight:700}
+.setup-panel select{width:auto;padding:9px 13px;background:#26334f}
+.scoreboard{display:flex;width:100%;gap:14px;margin-bottom:22px}
+.score-card{flex:1;padding:15px;border:2px solid transparent;border-radius:18px;background:rgba(255,255,255,.06)}
+.score-card.active-p1{border-color:#3295ff;box-shadow:0 0 22px rgba(50,149,255,.4)}
+.score-card.active-ai{border-color:#ff3eaa;box-shadow:0 0 22px rgba(255,62,170,.4)}
+.player-name{margin-bottom:5px;color:var(--muted);font-size:.9rem}
+.score-val{font-size:2rem;font-weight:900}
+.p1-text{color:#3295ff}.ai-text{color:#ff3eaa}
+.board{width:fit-content;max-width:100%;margin:0 auto;padding:18px;overflow:hidden;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:rgba(2,8,23,.62)}
+.board .row{width:max-content;margin:0 auto;display:flex;align-items:center;justify-content:center}
+.dot{width:14px;height:14px;flex:0 0 14px;z-index:2;border-radius:50%;background:#aebbd4;box-shadow:0 0 0 3px rgba(255,255,255,.08),0 0 14px rgba(174,187,212,.6)}
+.h-line,.v-line{z-index:1;border-radius:8px;background:#26344d;cursor:pointer;transition:.2s}
+.h-line:hover:not(.taken),.v-line:hover:not(.taken){background:#6680a9;box-shadow:0 0 14px rgba(114,167,255,.8)}
+.h-line{height:12px}.v-line{width:12px}
+.grid-3 .h-line{width:70px}.grid-3 .v-line{height:70px}.grid-3 .box{width:70px;height:70px}
+.grid-4 .h-line{width:56px}.grid-4 .v-line{height:56px}.grid-4 .box{width:56px;height:56px}
+.grid-5 .h-line{width:44px}.grid-5 .v-line{height:44px}.grid-5 .box{width:44px;height:44px}
+.line.taken.p1{background:linear-gradient(90deg,#1475e8,#6dbaff);box-shadow:0 0 16px rgba(50,149,255,.8);cursor:default}
+.line.taken.ai{background:linear-gradient(90deg,#d51d83,#ff70c0);box-shadow:0 0 16px rgba(255,62,170,.8);cursor:default}
+.line.taken.p2{background:linear-gradient(90deg,#e8a014,#ffd56d);box-shadow:0 0 16px rgba(255,200,50,.8);cursor:default}
+.box{flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.04);border-radius:7px;font-size:1.15rem;font-weight:900}
+.box.filled-p1{color:#b8e0ff;background:rgba(50,149,255,.45)}
+.box.filled-ai{color:#ffc1e4;background:rgba(255,62,170,.45)}
+.box.filled-p2{color:#ffe8b0;background:rgba(255,200,50,.45)}
+.controls{width:100%;margin-top:22px}
+.game-paused .board{filter:blur(5px) brightness(.45);pointer-events:none}
+.game-paused::after{content:"GAME PAUSED";position:absolute;top:50%;left:50%;z-index:6;padding:13px 22px;border-radius:14px;color:white;background:rgba(10,18,38,.92);font-weight:900;letter-spacing:2px;transform:translate(-50%,-50%)}
+.modal{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(10px)}
+.modal-content{width:min(92vw,380px);padding:34px;text-align:center;border:1px solid rgba(255,255,255,.2);border-radius:25px;background:linear-gradient(145deg,#293655,#151d34)}
+.modal-content h2{color:var(--accent)}
+.modal-content p{margin-bottom:22px}
+.chat-container{height:min(86vh,720px);padding:0;display:flex;flex-direction:column;overflow:hidden;text-align:left}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07)}
+.chat-header button{width:auto;margin:0;padding:9px 14px;font-size:14px}
+.chat-messages{flex:1;min-height:0;padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.chat-message{max-width:78%;padding:11px 14px;border-radius:15px;color:white;word-wrap:break-word;line-height:1.4}
+.chat-message.mine{align-self:flex-end;border-bottom-right-radius:4px;background:linear-gradient(135deg,#3295ff,#1767c7)}
+.chat-message.other{align-self:flex-start;border-bottom-left-radius:4px;background:linear-gradient(135deg,#d51d83,#8d155a)}
+.chat-message.system-msg{align-self:center;background:rgba(255,255,255,.1);font-size:.85rem;color:var(--muted);border-radius:20px;padding:6px 14px}
+.chat-message small{display:block;margin-bottom:4px;color:rgba(255,255,255,.7);font-size:11px}
+.chat-input-area{display:flex;gap:10px;padding:14px 18px;border-top:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+.chat-input-area input{flex:1;margin:0}
+.chat-input-area button{width:auto;margin:0;padding:12px 18px}
+/* Waiting overlay */
+#waiting-overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);backdrop-filter:blur(14px)}
+#waiting-overlay h2{margin-bottom:12px;font-size:1.8rem;color:var(--accent)}
+#waiting-overlay p{color:var(--muted);margin-bottom:28px}
+.spinner{width:64px;height:64px;border:5px solid rgba(114,167,255,.2);border-top:5px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Game mode modal */
+#mode-modal{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.82);backdrop-filter:blur(12px)}
+#mode-modal .modal-content{width:min(92vw,360px)}
+#mode-modal .modal-content h2{margin-bottom:8px}
+#mode-modal .modal-content p{margin-bottom:22px;font-size:.95rem}
+/* Notification toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 24px;border-radius:14px;color:white;font-weight:700;font-size:15px;z-index:99;transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.success{background:linear-gradient(135deg,#2a9d5c,#1a6e3f)}
+#toast.error{background:linear-gradient(135deg,#e84545,#9b1c1c)}
+#toast.info{background:linear-gradient(135deg,#3295ff,#1767c7)}
+/* Online badge */
+.online-badge{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2ecc71;margin-right:6px;box-shadow:0 0 6px #2ecc71;animation:pulse-dot 1.5s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:560px){
+  body{padding:10px}
+  .card,.game-container{padding:22px 12px;border-radius:22px}
+  .chat-container{width:96vw;height:88vh}
+  .game-toolbar{top:15px;right:14px}
+  .icon-btn{width:32px;height:32px;font-size:17px}
+  h1{padding-right:115px;font-size:1.65rem}
+  .setup-panel{align-items:stretch;flex-direction:column;gap:9px}
+  .setup-panel select{width:100%}
+  .board{padding:12px}
+  .dot{width:11px;height:11px;flex-basis:11px}
+  .h-line{height:9px}.v-line{width:9px}
+  .grid-3 .h-line{width:52px}.grid-3 .v-line{height:52px}.grid-3 .box{width:52px;height:52px}
+  .grid-4 .h-line{width:40px}.grid-4 .v-line{height:40px}.grid-4 .box{width:40px;height:40px}
+  .grid-5 .h-line{width:31px}.grid-5 .v-line{height:31px}.grid-5 .box{width:31px;height:31px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="card">
+  <h2>Welcome Back</h2>
+  <p style="margin-bottom:18px;">Enter your player ID to continue</p>
+  <input type="text" id="user-id" placeholder="Enter Your ID">
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<!-- MAIN MENU -->
+<div id="main-menu" class="card hidden">
+  <h2 id="welcome-text">Welcome</h2>
+  <button onclick="clickPlayGame()">🎮 Play Game</button>
+  <button onclick="showPage('settings-page')">⚙️ Settings</button>
+  <button onclick="showPage('leaderboard-page')">🏆 Leaderboard</button>
+  <button onclick="quit()" style="color:white;background:linear-gradient(135deg,#ff7798,#db315b);box-shadow:0 8px 0 #8d1d3d;">🚪 Quit</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-page" class="card hidden">
+  <h2>Settings</h2>
+  <div class="setting-item toggle-container">
+    <span>Sound Effects</span>
+    <label class="switch"><input type="checkbox" id="sound-toggle" checked><span class="slider"></span></label>
+  </div>
+  <div class="setting-item">
+    <label>Select Your Color:</label>
+    <div class="color-options">
+      <div class="color-btn" style="background:#a6e3a1" onclick="changeTheme('#a6e3a1','#111b13')"></div>
+      <div class="color-btn" style="background:#f38ba8" onclick="changeTheme('#f38ba8','#1f1315')"></div>
+      <div class="color-btn" style="background:#89b4fa" onclick="changeTheme('#89b4fa','#080b18')"></div>
+      <div class="color-btn" style="background:#fab387" onclick="changeTheme('#fab387','#241a15')"></div>
+      <div class="color-btn" style="background:#cba6f7" onclick="changeTheme('#cba6f7','#1b1324')"></div>
+    </div>
+  </div>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<!-- LEADERBOARD / COUPON -->
+<div id="leaderboard-page" class="card hidden">
+  <h2>🏆 Leaderboard</h2>
+  <div class="alert-info">Enter secret coupon code to unlock Chat Room!</div>
+  <p style="margin-bottom:10px;">Enter coupon code:</p>
+  <input type="text" id="coupon-code" placeholder="Enter Coupon Code">
+  <button onclick="submitCoupon()">Submit</button>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<!-- SECRET CHAT -->
+<div id="chat-page" class="chat-container hidden">
+  <div class="chat-header">
+    <div>
+      <span class="online-badge"></span>
+      <strong id="chat-room-title">Chat Room</strong>
+      <small id="chat-partner-status" style="display:block;color:var(--muted);font-size:11px">Waiting for someone...</small>
+    </div>
+    <button id="chat-play-btn" onclick="chatInviteGame()">🎮 Play Game</button>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <form id="chat-form" class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<!-- GAME -->
+<div id="game-page" class="game-container hidden">
+  <div class="game-toolbar">
+    <button class="icon-btn" id="restart-icon" title="Restart Game">↻</button>
+    <button class="icon-btn" id="pause-icon" title="Pause Game">⏸</button>
+    <button class="icon-btn" id="settings-icon" title="Settings">⚙</button>
+  </div>
+  <h1>Dots & Boxes</h1>
+  <div class="setup-panel">
+    <label for="grid-select">Grid Size</label>
+    <select id="grid-select">
+      <option value="3">Small — 3 × 3</option>
+      <option value="4" selected>Medium — 4 × 4</option>
+      <option value="5">Large — 5 × 5</option>
+    </select>
+  </div>
+  <div class="scoreboard">
+    <div id="p1-card" class="score-card active-p1">
+      <div class="player-name p1-text" id="player-display-name">You (Blue)</div>
+      <div id="p1-score" class="score-val">0</div>
+    </div>
+    <div id="ai-card" class="score-card">
+      <div class="player-name ai-text" id="opponent-display-name">CPU (Pink)</div>
+      <div id="ai-score" class="score-val">0</div>
+    </div>
+  </div>
+  <div id="board" class="board grid-4"></div>
+  <div class="controls">
+    <button class="btn-back" onclick="leaveGame()">Back to Menu</button>
+  </div>
+</div>
+
+<!-- GAME OVER MODAL -->
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="winner-title">Game Over</h2>
+    <p id="winner-msg"></p>
+    <button id="modal-reset-btn">Play Again</button>
+    <button class="btn-back" id="modal-menu-btn" style="margin-top:8px">Main Menu</button>
+  </div>
+</div>
+
+<!-- GAME MODE MODAL -->
+<div id="mode-modal" class="modal" style="display:none">
+  <div class="modal-content">
+    <h2>🎮 Choose Mode</h2>
+    <p>How do you want to play?</p>
+    <button onclick="startComputerGame()">🤖 Play with Computer</button>
+    <button onclick="startOnlineMatchmaking()" style="background:linear-gradient(135deg,#b77cff,#7c3aed);box-shadow:0 8px 0 #4c1d95;">🌐 Play Online</button>
+    <button class="btn-back" onclick="closeModeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- WAITING OVERLAY -->
+<div id="waiting-overlay" class="hidden">
+  <div class="spinner"></div>
+  <h2>Finding Opponent...</h2>
+  <p id="waiting-msg">Searching for online players...</p>
+  <button onclick="cancelMatchmaking()" style="width:auto;padding:12px 28px;background:linear-gradient(135deg,#ff7798,#db315b);box-shadow:0 6px 0 #8d1d3d;">Cancel</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script type="module">
+// ═══════════════════════════════════════════
+// APPWRITE CONFIG
+// ═══════════════════════════════════════════
+const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT  = "6a98502b0023f61a6477";
+const DATABASE_ID       = "6a9853c300262f68c1fd";
+const COL_MESSAGES      = "messages";
+const COL_MATCHMAKING   = "matchmaking";
+const COL_GAME_SESSIONS = "game_sessions";
+
+let client, databases, realtimeUnsub;
+
+async function initAppwrite() {
+  // Dynamically import Appwrite SDK
+  const { Client, Databases, ID, Query, Permission, Role } = await import("https://cdn.jsdelivr.net/npm/appwrite@15/dist/esm/sdk.js");
+  window._AW = { Client, Databases, ID, Query, Permission, Role };
+  client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT);
+  databases = new Databases(client);
+  console.log("✅ Appwrite connected");
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let loggedInUser = "You";
+let isPaused = false;
+let gameMode = "computer"; // "computer" | "online"
+let onlineRoomId = null;
+let myRole = "p1"; // "p1" | "p2"
+let onlinePartner = "";
+let matchmakingDocId = null;
+let chatPartner = "";
+let chatRoomId = null;
+let chatRealtimeUnsub = null;
+let gameRealtimeUnsub = null;
+
+const P1 = "p1";
+const AI = "ai";
+const P2 = "p2";
+
+let gridSize = 4;
+let startingPlayer = P1;
+let currentPlayer = P1;
+let p1Score = 0;
+let aiScore = 0;
+let hLines = [], vLines = [], boxes = [];
+
+// DOM refs
+const gamePage = document.getElementById("game-page");
+const boardEl  = document.getElementById("board");
+const p1ScoreEl = document.getElementById("p1-score");
+const aiScoreEl = document.getElementById("ai-score");
+const p1Card = document.getElementById("p1-card");
+const aiCard = document.getElementById("ai-card");
+const gridSelect = document.getElementById("grid-select");
+const modal = document.getElementById("game-over-modal");
+const winnerTitle = document.getElementById("winner-title");
+const winnerMsg = document.getElementById("winner-msg");
+const pauseIcon = document.getElementById("pause-icon");
+const restartIcon = document.getElementById("restart-icon");
+const settingsIcon = document.getElementById("settings-icon");
+const chatMessages = document.getElementById("chat-messages");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const modeModal = document.getElementById("mode-modal");
+const waitingOverlay = document.getElementById("waiting-overlay");
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg, type = "info") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show " + type;
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.className = ""; }, 3200);
+}
+
+// ═══════════════════════════════════════════
+// AUTH / LOGIN
+// ═══════════════════════════════════════════
+window.login = function() {
+  const userId = document.getElementById("user-id").value.trim();
+  if (!userId) { showToast("Pehle apni ID enter karein!", "error"); return; }
+  loggedInUser = userId;
+  document.getElementById("welcome-text").textContent = "Welcome, " + userId;
+  document.getElementById("player-display-name").textContent = userId + " (Blue)";
+  showPage("main-menu");
+};
+
+window.quit = function() {
+  cleanupAll();
+  document.getElementById("user-id").value = "";
+  loggedInUser = "You";
+  showPage("login-page");
+};
+
+// ═══════════════════════════════════════════
+// PAGE NAVIGATION
+// ═══════════════════════════════════════════
+const ALL_PAGES = ["login-page","main-menu","settings-page","leaderboard-page","chat-page","game-page"];
+
+window.showPage = function(pageId) {
+  ALL_PAGES.forEach(id => document.getElementById(id).classList.add("hidden"));
+  document.getElementById(pageId).classList.remove("hidden");
+};
+
+window.changeTheme = function(accentColor, bgColor) {
+  document.documentElement.style.setProperty("--accent", accentColor);
+  document.documentElement.style.setProperty("--bg", bgColor);
+};
+
+// ═══════════════════════════════════════════
+// COUPON + SECRET CHAT
+// ═══════════════════════════════════════════
+window.submitCoupon = function() {
+  const code = document.getElementById("coupon-code").value.trim().toLowerCase();
+  if (!code) { showToast("Coupon code enter karein.", "error"); return; }
+  if (code === "gorilla") {
+    openSecretChat();
+  } else {
+    showToast("❌ Wrong Code! Try again.", "error");
+  }
+};
+
+async function openSecretChat() {
+  showPage("chat-page");
+  chatMessages.innerHTML = "";
+  addSystemMsg("🔐 Secret Chat unlocked! Waiting for someone to join...");
+
+  // Join matchmaking-style chat pool
+  try {
+    const { ID, Query } = window._AW;
+    // Look for existing waiting chat partner
+    const res = await databases.listDocuments(DATABASE_ID, COL_MATCHMAKING, [
+      Query.equal("type", "chat"),
+      Query.equal("status", "waiting"),
+      Query.notEqual("userId", loggedInUser)
+    ]);
+
+    if (res.documents.length > 0) {
+      // Join existing chat room
+      const doc = res.documents[0];
+      chatRoomId = doc.roomId;
+      chatPartner = doc.userId;
+      matchmakingDocId = doc.$id;
+
+      // Mark as matched
+      await databases.updateDocument(DATABASE_ID, COL_MATCHMAKING, doc.$id, { status: "matched", partnerId: loggedInUser });
+
+      document.getElementById("chat-room-title").textContent = "Chat with " + chatPartner;
+      document.getElementById("chat-partner-status").textContent = chatPartner + " is online";
+      addSystemMsg("✅ Connected with " + chatPartner + "!");
+
+    } else {
+      // Create new chat room
+      chatRoomId = "chat_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+      const doc = await databases.createDocument(DATABASE_ID, COL_MATCHMAKING, ID.unique(), {
+        type: "chat",
+        status: "waiting",
+        userId: loggedInUser,
+        roomId: chatRoomId,
+        partnerId: ""
+      });
+      matchmakingDocId = doc.$id;
+      addSystemMsg("⏳ Waiting for someone to join...");
+
+      // Poll for partner
+      pollForChatPartner();
+    }
+
+    // Subscribe to realtime messages
+    subscribeToChatRoom(chatRoomId);
+
+  } catch(e) {
+    console.error("Chat setup error:", e);
+    // Fallback to local-only chat
+    addSystemMsg("⚠️ Offline mode - messages won't sync.");
+  }
+}
+
+async function pollForChatPartner() {
+  const { Query } = window._AW;
+  const interval = setInterval(async () => {
+    try {
+      const doc = await databases.getDocument(DATABASE_ID, COL_MATCHMAKING, matchmakingDocId);
+      if (doc.status === "matched" && doc.partnerId) {
+        chatPartner = doc.partnerId;
+        clearInterval(interval);
+        document.getElementById("chat-room-title").textContent = "Chat with " + chatPartner;
+        document.getElementById("chat-partner-status").textContent = chatPartner + " is online";
+        addSystemMsg("✅ " + chatPartner + " joined the chat!");
+      }
+    } catch(e) {}
+  }, 2000);
+  // Stop polling after 5 minutes
+  setTimeout(() => clearInterval(interval), 300000);
+}
+
+function subscribeToChatRoom(roomId) {
+  if (chatRealtimeUnsub) chatRealtimeUnsub();
+  const { Client } = window._AW;
+  const rt = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT);
+
+  chatRealtimeUnsub = rt.subscribe(
+    `databases.${DATABASE_ID}.collections.${COL_MESSAGES}.documents`,
+    (event) => {
+      const doc = event.payload;
+      if (doc.roomId !== roomId) return;
+      if (doc.sender === loggedInUser) return; // Already shown locally
+
+      if (doc.type === "game_invite") {
+        // Both redirect to game
+        addSystemMsg("🎮 " + doc.sender + " started the game! Joining...");
+        setTimeout(() => {
+          gameMode = "online";
+          onlineRoomId = doc.gameRoomId;
+          myRole = P2;
+          onlinePartner = doc.sender;
+          startOnlineGame();
+        }, 1000);
+        return;
+      }
+
+      addChatMessage(doc.sender, doc.text, "other");
+    }
+  );
+}
+
+// ═══════════════════════════════════════════
+// CHAT FUNCTIONS
+// ═══════════════════════════════════════════
+function addSystemMsg(text) {
+  const div = document.createElement("div");
+  div.className = "chat-message system-msg";
+  div.textContent = text;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addChatMessage(sender, message, type) {
+  const box = document.createElement("div");
+  box.className = "chat-message " + type;
+  const sn = document.createElement("small");
+  sn.textContent = sender;
+  const mt = document.createElement("div");
+  mt.textContent = message;
+  box.appendChild(sn);
+  box.appendChild(mt);
+  chatMessages.appendChild(box);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+chatForm.addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+  addChatMessage(loggedInUser, message, "mine");
+  chatInput.value = "";
+  chatInput.focus();
+
+  if (chatRoomId && databases) {
+    try {
+      const { ID } = window._AW;
+      await databases.createDocument(DATABASE_ID, COL_MESSAGES, ID.unique(), {
+        roomId: chatRoomId,
+        sender: loggedInUser,
+        text: message,
+        type: "chat",
+        gameRoomId: ""
+      });
+    } catch(e) { console.error("Send msg error:", e); }
+  }
+});
+
+// Chat invite to game
+window.chatInviteGame = async function() {
+  if (!chatRoomId || !chatPartner) {
+    showToast("No partner in chat yet!", "error"); return;
+  }
+  const gameRoomId = "game_" + Date.now();
+  gameMode = "online";
+  onlineRoomId = gameRoomId;
+  myRole = P1;
+  onlinePartner = chatPartner;
+
+  // Send invite message via realtime
+  try {
+    const { ID } = window._AW;
+    await databases.createDocument(DATABASE_ID, COL_MESSAGES, ID.unique(), {
+      roomId: chatRoomId,
+      sender: loggedInUser,
+      text: "🎮 Game invite sent!",
+      type: "game_invite",
+      gameRoomId: gameRoomId
+    });
+  } catch(e) {}
+
+  addSystemMsg("🎮 Starting game with " + chatPartner + "...");
+  setTimeout(() => startOnlineGame(), 1200);
+};
+
+// ═══════════════════════════════════════════
+// GAME MODE SELECTION
+// ═══════════════════════════════════════════
+window.clickPlayGame = function() {
+  modeModal.style.display = "flex";
+};
+
+window.closeModeModal = function() {
+  modeModal.style.display = "none";
+};
+
+window.startComputerGame = function() {
+  modeModal.style.display = "none";
+  gameMode = "computer";
+  onlineRoomId = null;
+  document.getElementById("opponent-display-name").textContent = "CPU (Pink)";
+  aiCard.querySelector(".ai-text") && (aiCard.querySelector(".player-name").className = "player-name ai-text");
+  showPage("game-page");
+  isPaused = false;
+  gamePage.classList.remove("game-paused");
+  pauseIcon.textContent = "⏸";
+  initGame(true);
+};
+
+// ═══════════════════════════════════════════
+// ONLINE MATCHMAKING
+// ═══════════════════════════════════════════
+window.startOnlineMatchmaking = async function() {
+  modeModal.style.display = "none";
+  waitingOverlay.classList.remove("hidden");
+  document.getElementById("waiting-msg").textContent = "Dusre online players dhundh rahe hain...";
+
+  try {
+    const { ID, Query } = window._AW;
+
+    // Look for waiting opponent
+    const res = await databases.listDocuments(DATABASE_ID, COL_MATCHMAKING, [
+      Query.equal("type", "game"),
+      Query.equal("status", "waiting"),
+      Query.notEqual("userId", loggedInUser)
+    ]);
+
+    if (res.documents.length > 0) {
+      // Found opponent - join their room
+      const doc = res.documents[0];
+      onlineRoomId = doc.roomId;
+      onlinePartner = doc.userId;
+      myRole = P2;
+      matchmakingDocId = doc.$id;
+
+      await databases.updateDocument(DATABASE_ID, COL_MATCHMAKING, doc.$id, {
+        status: "matched",
+        partnerId: loggedInUser
+      });
+
+      waitingOverlay.classList.add("hidden");
+      showToast("✅ Opponent found: " + onlinePartner, "success");
+      startOnlineGame();
+
+    } else {
+      // Create waiting slot
+      onlineRoomId = "game_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+      myRole = P1;
+
+      const doc = await databases.createDocument(DATABASE_ID, COL_MATCHMAKING, ID.unique(), {
+        type: "game",
+        status: "waiting",
+        userId: loggedInUser,
+        roomId: onlineRoomId,
+        partnerId: ""
+      });
+      matchmakingDocId = doc.$id;
+
+      // Wait for opponent to join
+      pollForGamePartner();
+    }
+
+  } catch(e) {
+    console.error("Matchmaking error:", e);
+    waitingOverlay.classList.add("hidden");
+    showToast("Connection error! Check internet.", "error");
+  }
+};
+
+async function pollForGamePartner() {
+  const interval = setInterval(async () => {
+    try {
+      const doc = await databases.getDocument(DATABASE_ID, COL_MATCHMAKING, matchmakingDocId);
+      if (doc.status === "matched" && doc.partnerId) {
+        onlinePartner = doc.partnerId;
+        clearInterval(interval);
+        waitingOverlay.classList.add("hidden");
+        showToast("✅ Opponent found: " + onlinePartner, "success");
+        startOnlineGame();
+      }
+    } catch(e) {}
+  }, 2000);
+  setTimeout(() => {
+    clearInterval(interval);
+    if (!waitingOverlay.classList.contains("hidden")) {
+      waitingOverlay.classList.add("hidden");
+      showToast("No opponents found. Try again!", "error");
+    }
+  }, 120000);
+}
+
+window.cancelMatchmaking = async function() {
+  waitingOverlay.classList.add("hidden");
+  if (matchmakingDocId && databases) {
+    try { await databases.deleteDocument(DATABASE_ID, COL_MATCHMAKING, matchmakingDocId); } catch(e) {}
+    matchmakingDocId = null;
+  }
+  showPage("main-menu");
+};
+
+// ═══════════════════════════════════════════
+// ONLINE GAME
+// ═══════════════════════════════════════════
+function startOnlineGame() {
+  gameMode = "online";
+  document.getElementById("player-display-name").textContent = loggedInUser + " (Blue)";
+  document.getElementById("opponent-display-name").textContent = (onlinePartner || "Opponent") + " (Yellow)";
+  showPage("game-page");
+  isPaused = false;
+  gamePage.classList.remove("game-paused");
+  pauseIcon.textContent = "⏸";
+  initGame(true);
+  subscribeToOnlineGame();
+}
+
+function subscribeToOnlineGame() {
+  if (gameRealtimeUnsub) gameRealtimeUnsub();
+  const { Client } = window._AW;
+  const rt = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT);
+
+  gameRealtimeUnsub = rt.subscribe(
+    `databases.${DATABASE_ID}.collections.${COL_GAME_SESSIONS}.documents`,
+    (event) => {
+      const doc = event.payload;
+      if (doc.roomId !== onlineRoomId) return;
+      if (doc.movedBy === loggedInUser) return; // My own move
+
+      // Apply opponent's move
+      const type = doc.lineType;
+      const r = doc.lineR;
+      const c = doc.lineC;
+      const mover = myRole === P1 ? P2 : P1;
+      applyMove(type, r, c, mover, false);
+    }
+  );
+}
+
+async function sendOnlineMove(type, r, c) {
+  if (!databases || !onlineRoomId) return;
+  try {
+    const { ID } = window._AW;
+    await databases.createDocument(DATABASE_ID, COL_GAME_SESSIONS, ID.unique(), {
+      roomId: onlineRoomId,
+      movedBy: loggedInUser,
+      lineType: type,
+      lineR: r,
+      lineC: c,
+      timestamp: Date.now()
+    });
+  } catch(e) { console.error("Send move error:", e); }
+}
+
+// ═══════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════
+function initGame(fullReset = false) {
+  gridSize = parseInt(gridSelect.value);
+  p1Score = 0;
+  aiScore = 0;
+  p1ScoreEl.textContent = "0";
+  aiScoreEl.textContent = "0";
+  modal.style.display = "none";
+
+  startingPlayer = fullReset ? P1 : (startingPlayer === P1 ? (gameMode==="online"? P2:AI) : P1);
+  currentPlayer = startingPlayer;
+
+  hLines = Array.from({length:gridSize+1}, () => Array(gridSize).fill(null));
+  vLines = Array.from({length:gridSize}, () => Array(gridSize+1).fill(null));
+  boxes  = Array.from({length:gridSize}, () => Array(gridSize).fill(null));
+
+  updateTurnUI();
+  renderBoard();
+
+  if (gameMode === "computer" && currentPlayer === AI && !isPaused) {
+    setTimeout(aiMove, 500);
+  }
+}
+
+function renderBoard() {
+  boardEl.innerHTML = "";
+  boardEl.className = "board grid-" + gridSize;
+  for (let r = 0; r <= gridSize; r++) {
+    const hRow = document.createElement("div");
+    hRow.className = "row";
+    for (let c = 0; c < gridSize; c++) {
+      const dot = document.createElement("div"); dot.className = "dot"; hRow.appendChild(dot);
+      const line = document.createElement("div");
+      line.className = "h-line line";
+      line.dataset.type = "h"; line.dataset.r = r; line.dataset.c = c;
+      line.addEventListener("click", handleLineClick);
+      hRow.appendChild(line);
+    }
+    const ld = document.createElement("div"); ld.className = "dot"; hRow.appendChild(ld);
+    boardEl.appendChild(hRow);
+    if (r < gridSize) {
+      const vRow = document.createElement("div"); vRow.className = "row";
+      for (let c = 0; c <= gridSize; c++) {
+        const line = document.createElement("div");
+        line.className = "v-line line";
+        line.dataset.type = "v"; line.dataset.r = r; line.dataset.c = c;
+        line.addEventListener("click", handleLineClick);
+        vRow.appendChild(line);
+        if (c < gridSize) {
+          const box = document.createElement("div");
+          box.className = "box"; box.id = `box-${r}-${c}`;
+          vRow.appendChild(box);
+        }
+      }
+      boardEl.appendChild(vRow);
+    }
+  }
+}
+
+function handleLineClick(event) {
+  if (isPaused) return;
+  // Computer mode: only P1 can click
+  if (gameMode === "computer" && currentPlayer !== P1) return;
+  // Online mode: only my role can click
+  if (gameMode === "online" && currentPlayer !== myRole) return;
+
+  const type = event.target.dataset.type;
+  const r = parseInt(event.target.dataset.r);
+  const c = parseInt(event.target.dataset.c);
+
+  if (applyMove(type, r, c, currentPlayer, true)) {
+    if (gameMode === "online") sendOnlineMove(type, r, c);
+  }
+}
+
+// applyMove: shared for both local and remote moves
+function applyMove(type, r, c, player, checkAI) {
+  const lineArray = type === "h" ? hLines : vLines;
+  if (lineArray[r][c] !== null) return false;
+  lineArray[r][c] = player;
+
+  const lineEl = document.querySelector(`.line[data-type="${type}"][data-r="${r}"][data-c="${c}"]`);
+  if (lineEl) lineEl.classList.add("taken", player);
+
+  const completed = checkBoxes(type, r, c, player);
+  if (completed > 0) {
+    if (player === P1) p1Score += completed;
+    else aiScore += completed;
+    updateScores();
+    // Same player keeps turn if they completed a box
+  } else {
+    currentPlayer = nextPlayer(currentPlayer);
+    updateTurnUI();
+  }
+
+  if (checkGameOver()) return true;
+
+  if (checkAI && gameMode === "computer" && currentPlayer === AI && !isPaused) {
+    setTimeout(aiMove, 400);
+  }
+  return true;
+}
+
+function nextPlayer(p) {
+  if (gameMode === "computer") return p === P1 ? AI : P1;
+  return p === P1 ? P2 : P1;
+}
+
+function checkBoxes(type, r, c, player) {
+  let completed = 0;
+  getAffectedBoxes(type, r, c).forEach(({br, bc}) => {
+    if (boxes[br][bc] === null && getBoxEdgeCount(br, bc) === 4) {
+      boxes[br][bc] = player;
+      const boxEl = document.getElementById(`box-${br}-${bc}`);
+      boxEl.classList.add(`filled-${player}`);
+      const initial = player === P1 ? loggedInUser.charAt(0).toUpperCase()
+                    : player === P2 ? (onlinePartner||"P2").charAt(0).toUpperCase()
+                    : "C";
+      boxEl.textContent = initial;
+      completed++;
+    }
+  });
+  return completed;
+}
+
+function getAffectedBoxes(type, r, c) {
+  const result = [];
+  if (type === "h") {
+    if (r > 0) result.push({br:r-1, bc:c});
+    if (r < gridSize) result.push({br:r, bc:c});
+  } else {
+    if (c > 0) result.push({br:r, bc:c-1});
+    if (c < gridSize) result.push({br:r, bc:c});
+  }
+  return result;
+}
+
+function getBoxEdgeCount(r, c) {
+  let count = 0;
+  if (hLines[r][c] !== null) count++;
+  if (hLines[r+1][c] !== null) count++;
+  if (vLines[r][c] !== null) count++;
+  if (vLines[r][c+1] !== null) count++;
+  return count;
+}
+
+function aiMove() {
+  if (currentPlayer !== AI || isPaused || gameMode !== "computer") return;
+  const moves = getAllAvailableMoves();
+  if (!moves.length) return;
+
+  // Smart: complete a box
+  for (const mv of moves) {
+    if (createsBox(mv)) {
+      applyMove(mv.type, mv.r, mv.c, AI, true);
+      return;
+    }
+  }
+  // Safe: don't give away box
+  const safe = moves.filter(mv => !givesAwayBox(mv));
+  const choice = safe.length
+    ? safe[Math.floor(Math.random()*safe.length)]
+    : moves[Math.floor(Math.random()*moves.length)];
+  applyMove(choice.type, choice.r, choice.c, AI, true);
+}
+
+function getAllAvailableMoves() {
+  const moves = [];
+  for (let r=0;r<=gridSize;r++) for (let c=0;c<gridSize;c++) if (hLines[r][c]===null) moves.push({type:"h",r,c});
+  for (let r=0;r<gridSize;r++) for (let c=0;c<=gridSize;c++) if (vLines[r][c]===null) moves.push({type:"v",r,c});
+  return moves;
+}
+
+function createsBox(mv) { return getAffectedBoxes(mv.type,mv.r,mv.c).some(({br,bc})=>getBoxEdgeCount(br,bc)===3); }
+function givesAwayBox(mv) { return getAffectedBoxes(mv.type,mv.r,mv.c).some(({br,bc})=>getBoxEdgeCount(br,bc)===2); }
+
+function updateScores() {
+  p1ScoreEl.textContent = p1Score;
+  aiScoreEl.textContent = aiScore;
+}
+
+function updateTurnUI() {
+  p1Card.classList.toggle("active-p1", currentPlayer === P1);
+  aiCard.classList.toggle("active-ai", currentPlayer === AI || currentPlayer === P2);
+}
+
+function checkGameOver() {
+  if (p1Score + aiScore !== gridSize * gridSize) return false;
+
+  const isOnline = gameMode === "online";
+  if (p1Score > aiScore) {
+    winnerTitle.textContent = isOnline ? loggedInUser + " Won! 🏆" : "You Won! 🎉";
+    winnerMsg.textContent = isOnline
+      ? `${loggedInUser} won ${p1Score} - ${aiScore} vs ${onlinePartner}!`
+      : `Shaabaash! CPU ko ${p1Score} - ${aiScore} se haraaya!`;
+  } else if (aiScore > p1Score) {
+    winnerTitle.textContent = isOnline ? (onlinePartner || "Opponent") + " Won!" : "Computer Won!";
+    winnerMsg.textContent = isOnline
+      ? `${onlinePartner} won ${aiScore} - ${p1Score}!`
+      : `Agli baar better! CPU ne ${aiScore} - ${p1Score} se jeeta.`;
+  } else {
+    winnerTitle.textContent = "It's a Tie! 🤝";
+    winnerMsg.textContent = `Barabar! ${p1Score} - ${aiScore}.`;
+  }
+
+  modal.style.display = "flex";
+  return true;
+}
+
+window.leaveGame = function() {
+  cleanupGame();
+  showPage("main-menu");
+};
+
+function cleanupGame() {
+  if (gameRealtimeUnsub) { gameRealtimeUnsub(); gameRealtimeUnsub = null; }
+}
+
+function cleanupAll() {
+  cleanupGame();
+  if (chatRealtimeUnsub) { chatRealtimeUnsub(); chatRealtimeUnsub = null; }
+}
+
+// ═══════════════════════════════════════════
+// TOOLBAR
+// ═══════════════════════════════════════════
+restartIcon.addEventListener("click", () => {
+  if (confirm("Restart karna hai?")) {
+    isPaused = false;
+    gamePage.classList.remove("game-paused");
+    pauseIcon.textContent = "⏸";
+    initGame(true);
+  }
+});
+
+pauseIcon.addEventListener("click", () => {
+  if (gameMode === "online") return; // Can't pause online games
+  isPaused = !isPaused;
+  gamePage.classList.toggle("game-paused", isPaused);
+  pauseIcon.textContent = isPaused ? "▶" : "⏸";
+  if (!isPaused && currentPlayer === AI) setTimeout(aiMove, 300);
+});
+
+settingsIcon.addEventListener("click", () => showPage("settings-page"));
+
+document.getElementById("modal-reset-btn").addEventListener("click", () => {
+  isPaused = false;
+  gamePage.classList.remove("game-paused");
+  pauseIcon.textContent = "⏸";
+  initGame(true);
+});
+
+document.getElementById("modal-menu-btn").addEventListener("click", () => {
+  modal.style.display = "none";
+  leaveGame();
+});
+
+gridSelect.addEventListener("change", () => {
+  if (gameMode === "online") { showToast("Online game me grid change nahi ho sakta!", "error"); return; }
+  isPaused = false;
+  gamePage.classList.remove("game-paused");
+  pauseIcon.textContent = "⏸";
+  initGame(true);
+});
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+initAppwrite().catch(e => console.warn("Appwrite init failed:", e));
+
+</script>
+</body>
+</html>
