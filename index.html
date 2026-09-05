@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#080b18">
+  <title>Dots & Boxes 3D</title>
+  <link rel="preconnect" href="https://fra.cloud.appwrite.io">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+</head>
+
+<body>
+
+  <div id="login-page" class="card">
+    <h2>Welcome Back</h2>
+    <p style="margin-bottom:14px;">Enter your player ID to continue</p>
+    <div id="user-id" class="fake-input" contenteditable="true" data-placeholder="Enter Your ID" spellcheck="false"></div>
+    <button onclick="login()">Enter Game</button>
+  </div>
+
+  <div id="main-menu" class="card hidden">
+    <h2 id="welcome-text">Welcome</h2>
+    <button onclick="showPage('game-mode-page')">Play Game</button>
+    <button onclick="showPage('settings-page')">Settings</button>
+    <button onclick="showPage('leaderboard-page')">Leaderboard</button>
+    <button onclick="quit()" style="color:white; background:linear-gradient(135deg,#ff7798,#db315b); box-shadow:0 6px 0 #8d1d3d;">Quit</button>
+  </div>
+
+  <div id="game-mode-page" class="card hidden">
+    <h2>Select Game Mode</h2>
+    <button onclick="startComputerGame()">Play Computer</button>
+    <button onclick="startOnlineSearch()" style="background:linear-gradient(135deg,#b77cff,#8032ff); box-shadow:0 6px 0 #4f1d9e; color:white;">Play Online</button>
+    <button class="btn-back" onclick="showPage('main-menu')" style="margin-top:12px;">Back to Menu</button>
+  </div>
+
+  <div id="online-search-page" class="card hidden">
+    <h2>Searching Opponent</h2>
+    <div class="spinner"></div>
+    <p>searching online user for play game...</p>
+    <button class="btn-back" onclick="cancelOnlineSearch()" style="margin-top:20px;">Cancel Search</button>
+  </div>
+
+  <div id="settings-page" class="card hidden">
+    <h2>Settings</h2>
+    <div class="setting-item toggle-container">
+      <span>Sound Effects</span>
+      <label class="switch">
+        <input type="checkbox" id="sound-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="setting-item">
+      <label>Select Your Color:</label>
+      <div class="color-options">
+        <div class="color-btn" style="background:#3295ff" onclick="changeTheme('#3295ff','#080b18', this)"></div>
+        <div class="color-btn" style="background:#a6e3a1" onclick="changeTheme('#a6e3a1','#111b13', this)"></div>
+        <div class="color-btn" style="background:#f38ba8" onclick="changeTheme('#f38ba8','#1f1315', this)"></div>
+        <div class="color-btn" style="background:#fab387" onclick="changeTheme('#fab387','#241a15', this)"></div>
+        <div class="color-btn" style="background:#cba6f7" onclick="changeTheme('#cba6f7','#1b1324', this)"></div>
+      </div>
+    </div>
+    <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+  </div>
+
+  <div id="leaderboard-page" class="card hidden">
+    <h2>Leaderboard</h2>
+    <div class="alert-info">Enter valid coupon code to unlock secret features.</div>
+    <p style="margin-bottom:8px;">Enter coupon code:</p>
+    <div id="coupon-code" class="fake-input" contenteditable="true" data-placeholder="Enter Coupon Code" spellcheck="false"></div>
+    <button onclick="submitCoupon()">Submit</button>
+    <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+  </div>
+
+  <div id="chat-page" class="chat-container hidden">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-avatar">💬</div>
+        <div class="chat-header-info">
+          <span class="chat-header-name">Secret Live Chat</span>
+          <span class="chat-header-sub" id="online-status-btn" onclick="toggleOnlinePopup()" style="cursor:pointer;user-select:none;">● Online</span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button id="clear-chat-btn" onclick="clearAllChats()" style="width:auto;margin:0;padding:5px 10px;font-size:11px;background:rgba(255,60,60,.15);border:1px solid rgba(255,80,80,.3);color:#ff6b6b;border-radius:16px;">🗑</button>
+        <button id="chat-play-btn" onclick="showPage('game-mode-page')" style="border-radius:16px;">🎮 Play</button>
+      </div>
+    </div>
+
+    <div id="chat-messages" class="chat-messages"></div>
+
+    <div id="chat-picker-panel" class="chat-picker-panel hidden">
+      <div class="picker-tabs">
+        <div class="picker-tab active" id="tab-emoji" onclick="switchPickerTab('emoji')">😊 Emoji</div>
+        <div class="picker-tab" id="tab-gif" onclick="switchPickerTab('gif')">🎞 GIF</div>
+      </div>
+      <div class="picker-tab-content active" id="content-emoji"></div>
+      <div class="picker-tab-content" id="content-gif">
+        <div class="gif-search-bar">
+          <input class="gif-search-input" id="gif-search-input" type="text" placeholder="GIFs search karo..." />
+          <button class="chat-icon-btn" style="width:32px;height:32px;font-size:16px;flex-shrink:0;" onclick="searchGifs()">🔍</button>
+        </div>
+        <div class="gif-grid" id="gif-grid">
+          <div class="gif-loading">Trending GIFs load ho rahe hain...</div>
+        </div>
+        <div class="gif-attribution">Powered by GIPHY</div>
+      </div>
+    </div>
+
+    <div class="chat-input-wrapper">
+      <div id="reply-preview-bar" class="reply-preview-bar hidden">
+        <span id="reply-preview-text">Replying to...</span>
+        <span class="cancel-reply-btn" onclick="cancelReply()">✕</span>
+      </div>
+      <div id="chat-form" class="chat-input-area">
+        <button class="chat-emoji-open-btn" type="button" title="Emoji / GIF" onclick="togglePickerPanel()">😊</button>
+        <div id="chat-input" class="fake-input-chat" contenteditable="true" data-placeholder="Type a message..." spellcheck="false"></div>
+        <div class="chat-right-btns">
+          <button class="chat-icon-btn" type="button" title="Mic" onclick="return false;">🎤</button>
+          <button class="chat-send-btn" type="button" id="chat-send-btn" title="Send">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-page" class="game-container hidden">
+    <div id="countdown-overlay" class="countdown-overlay hidden">
+      <div id="countdown-text" class="countdown-num">3</div>
+    </div>
+    <div class="game-toolbar">
+      <button class="icon-btn" id="restart-icon" title="Restart Game">↻</button>
+      <button class="icon-btn" id="pause-icon" title="Pause Game">⏸</button>
+      <button class="icon-btn" id="settings-icon" title="Settings">⚙</button>
+    </div>
+    <h1>Dots & Boxes</h1>
+    <div class="setup-panel">
+      <label for="grid-select">Grid Size</label>
+      <select id="grid-select">
+        <option value="3">Small — 3 × 3</option>
+        <option value="4" selected>Medium — 4 × 4</option>
+        <option value="5">Large — 5 × 5</option>
+      </select>
+    </div>
+    <div class="scoreboard">
+      <div id="p1-card" class="score-card active-p1">
+        <div class="player-name p1-text" id="player-display-name">You</div>
+        <div id="p1-score" class="score-val">0</div>
+      </div>
+      <div id="ai-card" class="score-card">
+        <div class="player-name ai-text" id="opponent-display-name">CPU</div>
+        <div id="ai-score" class="score-val">0</div>
+      </div>
+    </div>
+    <div id="board" class="board grid-4"></div>
+    <div class="controls">
+      <button class="btn-back" onclick="leaveGame()">Back to Menu</button>
+    </div>
+  </div>
+
+  <div id="game-over-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="winner-title">Game Over</h2>
+      <p id="winner-msg"></p>
+      <button id="modal-reset-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
