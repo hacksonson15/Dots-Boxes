@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080b18">
+<title>Dots & Boxes 3D</title>
+<link rel="preconnect" href="https://fra.cloud.appwrite.io">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+
+<style>
+:root {
+  --bg:#080b18;
+  --bg2:#11182d;
+  --border:rgba(255,255,255,.14);
+  --text:#f8fafc;
+  --muted:#9aa8c7;
+  --accent:#3295ff;
+  --p2-color:#ff3eaa;
+  --shadow:0 25px 70px rgba(0,0,0,.55);
+}
+
+* {
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  user-select:none;
+}
+
+html {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  position:fixed;
+  top:0;
+  left:0;
+  overscroll-behavior:none;
+}
+
+body {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  touch-action:none;
+  position:fixed;
+  top:0;
+  left:0;
+  overscroll-behavior:none;
+  padding:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--bg2));
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(65,130,255,.18),transparent 35%),
+    radial-gradient(circle at 90% 90%,rgba(200,50,255,.14),transparent 35%);
+  pointer-events:none;
+  z-index:0;
+  will-change:auto;
+}
+
+.card,.game-container,.chat-container { position:relative; z-index:1; }
+
+.hidden {
+  display:none!important;
+}
+
+.card,
+.game-container,
+.chat-container {
+  width:min(94vw,680px);
+  max-height:calc(100dvh - 24px);
+  padding:24px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.13);
+  animation:cardIn .4s ease;
+  overflow-y:auto;
+  will-change:transform;
+  transform:translateZ(0);
+}
+
+.card {
+  width:min(92vw,400px);
+}
+
+.game-container {
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+}
+
+@keyframes cardIn {
+  from { opacity:0;transform:translateY(20px) scale(.96); }
+  to { opacity:1;transform:translateY(0) scale(1); }
+}
+
+h1 {
+  width:100%;
+  padding-right:120px;
+  margin-bottom:12px;
+  text-align:left;
+  font-size:clamp(1.4rem,4vw,2.2rem);
+  letter-spacing:1px;
+  background:linear-gradient(90deg,#fff,var(--accent),var(--p2-color));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+h2 {
+  margin-bottom:16px;
+  font-size:1.8rem;
+}
+
+p {
+  color:var(--muted);
+}
+
+.fake-input {
+  width:100%;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  outline:none;
+  color:white;
+  background:rgba(0,0,0,.25);
+  font-size:15px;
+  margin:10px 0 16px;
+  min-height:46px;
+  line-height:1.4;
+  cursor:text;
+  white-space:nowrap;
+  overflow:hidden;
+  position:relative;
+}
+
+.fake-input:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(114,167,255,.14);
+}
+
+.fake-input:empty::before {
+  content:attr(data-placeholder);
+  color:#71809e;
+  pointer-events:none;
+}
+
+.fake-input-chat {
+  flex:1;
+  min-height:36px;
+  max-height:100px;
+  padding:8px 12px;
+  background:#0d1117;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:22px;
+  outline:none;
+  color:#fff;
+  font-size:14px;
+  line-height:1.4;
+  cursor:text;
+  word-break:break-word;
+  overflow-y:auto;
+  user-select:text;
+  -webkit-user-select:text;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.fake-input-chat:focus {
+  border-color:#3295ff;
+  box-shadow:0 0 0 3px rgba(50,149,255,.15);
+}
+
+.fake-input-chat:empty::before {
+  content:attr(data-placeholder);
+  color:#555e72;
+  pointer-events:none;
+}
+
+button {
+  width:100%;
+  margin:6px 0;
+  padding:12px 16px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  color:#07101e;
+  background:linear-gradient(135deg,#91bdff,var(--accent));
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s ease;
+  box-shadow:0 6px 0 #426da9,0 12px 22px rgba(64,135,255,.25);
+}
+
+button:hover {
+  transform:translateY(-2px);
+  opacity:0.92;
+}
+
+button:active {
+  transform:translateY(3px);
+  box-shadow:0 2px 0 #426da9;
+}
+
+.btn-back {
+  color:white;
+  background:linear-gradient(135deg,#465273,#29334f);
+  box-shadow:0 6px 0 #1a2239,0 12px 20px rgba(0,0,0,.25);
+}
+
+#login-page h2 {
+  background:linear-gradient(90deg,#fff,var(--accent));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 11, 24, 0.90);
+  backdrop-filter: blur(3px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-num {
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--accent);
+  animation: popNum 0.8s ease infinite;
+}
+
+@keyframes popNum {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.setting-item {
+  margin:16px 0;
+  padding:14px;
+  text-align:left;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.045);
+}
+
+.toggle-container {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.color-options {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:12px;
+}
+
+.color-btn {
+  width:36px;
+  height:36px;
+  padding:0;
+  border:3px solid rgba(255,255,255,.75);
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.color-btn.selected {
+  transform: scale(1.15);
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.8);
+}
+
+.switch {
+  position:relative;
+  width:50px;
+  height:26px;
+}
+
+.switch input {
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider {
+  position:absolute;
+  inset:0;
+  cursor:pointer;
+  border-radius:30px;
+  background:#39445f;
+}
+
+.slider::before {
+  content:"";
+  position:absolute;
+  width:20px;
+  height:20px;
+  left:3px;
+  bottom:3px;
+  border-radius:50%;
+  background:white;
+  transition:.3s;
+}
+
+.switch input:checked + .slider {
+  background:var(--accent);
+}
+
+.switch input:checked + .slider::before {
+  transform:translateX(24px);
+}
+
+.alert-info {
+  margin-bottom:14px;
+  padding:11px;
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  color:#dce8ff;
+  background:rgba(114,167,255,.12);
+  font-size:14px;
+}
+
+.game-toolbar {
+  position:absolute;
+  top:16px;
+  right:16px;
+  z-index:5;
+  display:flex;
+  gap:6px;
+}
+
+.icon-btn {
+  width:34px;
+  height:34px;
+  margin:0;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#eaf2ff;
+  background:linear-gradient(145deg,#35476c,#1a2744);
+  font-size:18px;
+  box-shadow:0 4px 0 #111b31,0 6px 12px rgba(0,0,0,.35);
+}
+
+.setup-panel {
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  padding:10px 14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+}
+
+.setup-panel label {
+  color:var(--muted);
+  font-weight:700;
+  font-size:14px;
+}
+
+.setup-panel select {
+  width:auto;
+  padding:6px 10px;
+  background:#26334f;
+  font-size:14px;
+  color: white;
+  border-radius: 8px;
+}
+
+.scoreboard {
+  display:flex;
+  width:100%;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.score-card {
+  flex:1;
+  padding:10px;
+  border:2px solid transparent;
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+}
+
+.score-card.active-p1 {
+  border-color:var(--accent);
+  box-shadow:0 0 18px var(--accent);
+}
+
+.score-card.active-ai {
+  border-color:var(--p2-color);
+  box-shadow:0 0 18px var(--p2-color);
+}
+
+.player-name {
+  margin-bottom:3px;
+  color:var(--muted);
+  font-size:.85rem;
+}
+
+.score-val {
+  font-size:1.6rem;
+  font-weight:900;
+}
+
+.p1-text { color:var(--accent); }
+.ai-text { color:var(--p2-color); }
+
+.board {
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto;
+  padding:12px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(2,8,23,.62);
+  touch-action:none;
+}
+
+.board .row {
+  width:max-content;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.dot {
+  width:12px;
+  height:12px;
+  flex:0 0 12px;
+  z-index:2;
+  border-radius:50%;
+  background:#aebbd4;
+  box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 10px rgba(174,187,212,.6);
+}
+
+.h-line,
+.v-line {
+  z-index:1;
+  border-radius:6px;
+  background:#26344d;
+  cursor:pointer;
+  transition:background .15s,box-shadow .15s;
+  will-change:background;
+}
+
+.h-line:hover:not(.taken),
+.v-line:hover:not(.taken) {
+  background:#6680a9;
+  box-shadow:0 0 10px rgba(114,167,255,.8);
+}
+
+.h-line { height:10px; }
+.v-line { width:10px; }
+
+.grid-3 .h-line { width:60px; }
+.grid-3 .v-line { height:60px; }
+.grid-3 .box { width:60px;height:60px; }
+
+.grid-4 .h-line { width:46px; }
+.grid-4 .v-line { height:46px; }
+.grid-4 .box { width:46px;height:46px; }
+
+.grid-5 .h-line { width:34px; }
+.grid-5 .v-line { height:34px; }
+.grid-5 .box { width:34px;height:34px; }
+
+.line.taken.p1 {
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent);
+  cursor:default;
+}
+
+.line.taken.ai {
+  background:var(--p2-color);
+  box-shadow:0 0 12px var(--p2-color);
+  cursor:default;
+}
+
+.box {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.04);
+  border-radius:6px;
+  font-size:1.1rem;
+  font-weight:900;
+  text-transform: uppercase;
+}
+
+.box.filled-p1 {
+  color:#ffffff;
+  background:var(--accent);
+  opacity:0.85;
+}
+
+.box.filled-ai {
+  color:#ffffff;
+  background:var(--p2-color);
+  opacity:0.85;
+}
+
+.controls {
+  width:100%;
+  margin-top:12px;
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.82);
+  backdrop-filter:blur(4px);
+}
+
+.modal-content {
+  width:min(92vw,360px);
+  padding:26px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:22px;
+  background:linear-gradient(145deg,#293655,#151d34);
+}
+
+.modal-content h2 {
+  color:var(--accent);
+}
+
+.modal-content p {
+  margin-bottom:18px;
+}
+
+/* ==================== CHAT STYLES ==================== */
+.chat-container {
+  position:fixed !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  border:none !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  background:#0d1117 !important;
+  padding:0 !important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  text-align:left;
+  z-index:5;
+  animation:none !important;
+}
+
+.chat-header {
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  padding-top:max(10px, env(safe-area-inset-top));
+  background:#161b27;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  min-height:56px;
+}
+
+.chat-header-left {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.chat-avatar {
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#3295ff,#a855f7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.chat-header-info {
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+
+.chat-header-name {
+  font-size:15px;
+  font-weight:600;
+  color:#fff;
+}
+
+.chat-header-sub {
+  font-size:11px;
+  color:#3295ff;
+}
+
+.chat-header-actions {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.chat-header button {
+  width:auto;
+  margin:0;
+  padding:7px 12px;
+  font-size:12px;
+  border-radius:20px;
+}
+
+.chat-messages {
+  flex:1;
+  min-height:0;
+  padding:10px 12px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  contain:strict;
+  background:#0d1117;
+}
+
+.chat-message {
+  position:relative;
+  max-width:72%;
+  padding:7px 10px;
+  border-radius:16px;
+  color:white;
+  word-wrap:break-word;
+  font-size:13.5px;
+  line-height:1.4;
+  cursor:pointer;
+}
+
+.chat-message.mine {
+  align-self:flex-end;
+  border-bottom-right-radius:3px;
+  background:#1d4ed8;
+}
+
+.chat-message.other {
+  align-self:flex-start;
+  border-bottom-left-radius:3px;
+  background:#1e2736;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.chat-message.status {
+  align-self:center;
+  max-width:90%;
+  padding:3px 12px;
+  font-size:11px;
+  color:var(--muted);
+  background:rgba(255,255,255,.05);
+  border-radius:20px;
+  cursor:default;
+}
+
+.chat-sender {
+  font-size:10.5px;
+  font-weight:bold;
+  margin-bottom:2px;
+  opacity:0.75;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.reply-quote {
+  background:rgba(0,0,0,.28);
+  border-left:3px solid rgba(255,255,255,.5);
+  padding:3px 7px;
+  border-radius:5px;
+  font-size:11.5px;
+  margin-bottom:5px;
+  cursor:pointer;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.msg-actions {
+  display:none;
+  gap:6px;
+  margin-top:5px;
+  justify-content:flex-end;
+  opacity:0.9;
+  border-top:1px solid rgba(255,255,255,.12);
+  padding-top:4px;
+}
+
+.chat-message.actions-open .msg-actions {
+  display:flex;
+}
+
+.msg-act-btn {
+  background:rgba(0,0,0,.2);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:7px;
+  color:#fff;
+  font-size:10.5px;
+  cursor:pointer;
+  padding:2px 6px;
+  width:auto;
+  margin:0;
+  box-shadow:none;
+}
+
+.msg-act-btn:hover {
+  background:rgba(255,255,255,.25);
+  transform:none;
+  filter:none;
+}
+
+/* ── Inline Mini GIF Emojis ── */
+.mini-gif-emoji {
+  width: 26px;
+  height: 26px;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 2px;
+  object-fit: contain;
+}
+
+/* ── Mini GIF Emoji Panel (Giphy Powered) ── */
+.chat-picker-panel {
+  flex-shrink:0;
+  background:#161b27;
+  border-top:1px solid rgba(255,255,255,.12);
+  display:flex;
+  flex-direction:column;
+  height:260px;
+  overflow:hidden;
+  animation:slideUpPanel .2s ease;
+}
+
+@keyframes slideUpPanel {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.gif-search-bar {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+
+.gif-search-input {
+  flex:1;
+  padding:6px 12px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.15);
+  background:#0d1117;
+  color:#fff;
+  font-size:13px;
+  outline:none;
+}
+
+.gif-search-input:focus {
+  border-color:#3295ff;
+}
+
+.gif-grid {
+  display:grid;
+  grid-template-columns:repeat(5, 1fr);
+  gap:8px;
+  padding:10px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  flex:1;
+  min-height:0;
+  -webkit-overflow-scrolling:touch;
+  align-content:start;
+}
+
+.gif-emoji-item {
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  width:100%;
+  height:54px;
+  background:#0d1117;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px;
+  transition:transform .12s, background .12s;
+}
+
+.gif-emoji-item:hover {
+  transform:scale(1.15);
+  background:rgba(255,255,255,.1);
+}
+
+.gif-emoji-item img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+
+.gif-loading {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:80px;
+  width:100%;
+  color:#9aa8c7;
+  font-size:13px;
+  grid-column:1/-1;
+}
+
+.gif-attribution {
+  text-align:center;
+  font-size:10px;
+  color:#555e72;
+  padding:4px;
+  flex-shrink:0;
+}
+
+/* ── Input bar ── */
+.chat-input-wrapper {
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#161b27;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+
+.reply-preview-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:5px 14px;
+  background:rgba(0,0,0,.3);
+  font-size:12px;
+  color:var(--muted);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.reply-preview-bar span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:85%;
+}
+
+.cancel-reply-btn {
+  cursor:pointer;
+  font-weight:bold;
+  color:#ff3eaa;
+  margin-left:8px;
+}
+
+.chat-input-area {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+}
+
+.chat-emoji-open-btn {
+  flex-shrink:0;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:none;
+  border:none;
+  box-shadow:none;
+  font-size:22px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  margin:0;
+  color:#9aa8c7;
+  transition:transform .15s;
+}
+.chat-emoji-open-btn:hover { transform:scale(1.15); background:none; box-shadow:none; }
+
+.chat-right-btns {
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.chat-icon-btn {
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:none;
+  border:none;
+  box-shadow:none;
+  font-size:20px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  margin:0;
+  color:#9aa8c7;
+  transition:transform .15s;
+}
+.chat-icon-btn:hover { transform:scale(1.15); background:none; box-shadow:none; }
+
+.chat-send-btn {
+  width:38px !important;
+  height:38px !important;
+  border-radius:50% !important;
+  background:linear-gradient(135deg,#3295ff,#1767c7) !important;
+  border:none !important;
+  box-shadow:0 2px 8px rgba(50,149,255,.4) !important;
+  font-size:16px !important;
+  cursor:pointer;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  padding:0 !important;
+  margin:0 !important;
+  flex-shrink:0;
+  transition:transform .15s, opacity .15s !important;
+}
+.chat-send-btn:hover { transform:scale(1.1) !important; opacity:1 !important; }
+
+/* ── Online Users Popup ── */
+.online-popup {
+  position:absolute;
+  top:60px;
+  left:14px;
+  z-index:50;
+  background:#161b27;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+  min-width:190px;
+  max-width:240px;
+  overflow:hidden;
+  animation:popIn .18s ease;
+}
+
+@keyframes popIn {
+  from { opacity:0; transform:translateY(-8px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.online-popup-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px 8px;
+  font-size:12px;
+  font-weight:600;
+  color:#9aa8c7;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.online-popup-close {
+  cursor:pointer;
+  font-size:15px;
+  color:#ff6b6b;
+  line-height:1;
+  padding:0 2px;
+}
+
+.online-popup-list {
+  padding:6px 0;
+  max-height:200px;
+  overflow-y:auto;
+}
+
+.online-user-row {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 14px;
+  font-size:13px;
+  color:#e2e8f0;
+}
+
+.online-user-row:last-child {
+  border-bottom:none;
+}
+
+.online-dot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#22c55e;
+  flex-shrink:0;
+  box-shadow:0 0 5px #22c55e;
+}
+
+.online-empty {
+  padding:12px 14px;
+  font-size:12px;
+  color:#555e72;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login-page" class="card">
+  <h2>Welcome Back</h2>
+  <p style="margin-bottom:14px;">Enter your player ID to continue</p>
+  <div id="user-id" class="fake-input" contenteditable="true" data-placeholder="Enter Your ID" spellcheck="false"></div>
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<div id="main-menu" class="card hidden">
+  <h2 id="welcome-text">Welcome</h2>
+  <button onclick="showPage('game-mode-page')">Play Game</button>
+  <button onclick="showPage('settings-page')">Settings</button>
+  <button onclick="showPage('leaderboard-page')">Leaderboard</button>
+  <button onclick="quit()" style="color:white; background:linear-gradient(135deg,#ff7798,#db315b); box-shadow:0 6px 0 #8d1d3d;">Quit</button>
+</div>
+
+<div id="game-mode-page" class="card hidden">
+  <h2>Select Game Mode</h2>
+  <button onclick="startComputerGame()">Play Computer</button>
+  <button onclick="startOnlineSearch()" style="background:linear-gradient(135deg,#b77cff,#8032ff); box-shadow:0 6px 0 #4f1d9e; color:white;">Play Online</button>
+  <button class="btn-back" onclick="showPage('main-menu')" style="margin-top:12px;">Back to Menu</button>
+</div>
+
+<div id="online-search-page" class="card hidden">
+  <h2>Searching Opponent</h2>
+  <div class="spinner"></div>
+  <p>searching online user for play game...</p>
+  <button class="btn-back" onclick="cancelOnlineSearch()" style="margin-top:20px;">Cancel Search</button>
+</div>
+
+<div id="settings-page" class="card hidden">
+  <h2>Settings</h2>
+  <div class="setting-item toggle-container">
+    <span>Sound Effects</span>
+    <label class="switch">
+      <input type="checkbox" id="sound-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="setting-item">
+    <label>Select Your Color:</label>
+    <div class="color-options">
+      <div class="color-btn" style="background:#3295ff" onclick="changeTheme('#3295ff','#080b18', this)"></div>
+      <div class="color-btn" style="background:#a6e3a1" onclick="changeTheme('#a6e3a1','#111b13', this)"></div>
+      <div class="color-btn" style="background:#f38ba8" onclick="changeTheme('#f38ba8','#1f1315', this)"></div>
+      <div class="color-btn" style="background:#fab387" onclick="changeTheme('#fab387','#241a15', this)"></div>
+      <div class="color-btn" style="background:#cba6f7" onclick="changeTheme('#cba6f7','#1b1324', this)"></div>
+    </div>
+  </div>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<div id="leaderboard-page" class="card hidden">
+  <h2>Leaderboard</h2>
+  <div class="alert-info">Enter valid coupon code to unlock secret features.</div>
+  <p style="margin-bottom:8px;">Enter coupon code:</p>
+  <div id="coupon-code" class="fake-input" contenteditable="true" data-placeholder="Enter Coupon Code" spellcheck="false"></div>
+  <button onclick="submitCoupon()">Submit</button>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<div id="chat-page" class="chat-container hidden">
+
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-avatar">💬</div>
+      <div class="chat-header-info">
+        <span class="chat-header-name">Secret Live Chat</span>
+        <span class="chat-header-sub" id="online-status-btn" onclick="toggleOnlinePopup()" style="cursor:pointer;user-select:none;">● Online</span>
+      </div>
+    </div>
+    <div class="chat-header-actions">
+      <button id="clear-chat-btn" onclick="clearAllChats()" style="width:auto;margin:0;padding:5px 10px;font-size:11px;background:rgba(255,60,60,.15);border:1px solid rgba(255,80,80,.3);color:#ff6b6b;border-radius:16px;">🗑</button>
+      <button id="chat-play-btn" onclick="showPage('game-mode-page')" style="border-radius:16px;">🎮 Play</button>
+    </div>
+  </div>
+
+  <div id="chat-messages" class="chat-messages"></div>
+
+  <div id="chat-picker-panel" class="chat-picker-panel hidden">
+    <div class="gif-search-bar">
+      <input class="gif-search-input" id="gif-search-input" type="text" placeholder="Mini GIF Emojis search karo..." />
+      <button class="chat-icon-btn" style="width:32px;height:32px;font-size:16px;flex-shrink:0;" onclick="searchGifs()">🔍</button>
+    </div>
+    <div class="gif-grid" id="gif-grid">
+      <div class="gif-loading">GIF Emojis load ho rahe hain...</div>
+    </div>
+    <div class="gif-attribution">Powered by GIPHY Emojis</div>
+  </div>
+
+  <div class="chat-input-wrapper">
+    <div id="reply-preview-bar" class="reply-preview-bar hidden">
+      <span id="reply-preview-text">Replying to...</span>
+      <span class="cancel-reply-btn" onclick="cancelReply()">✕</span>
+    </div>
+    <div id="chat-form" class="chat-input-area">
+      <button class="chat-emoji-open-btn" type="button" title="Mini GIF Emoji" onclick="togglePickerPanel()">😊</button>
+      <div id="chat-input" class="fake-input-chat" contenteditable="true" data-placeholder="Type a message..." spellcheck="false"></div>
+      <div class="chat-right-btns">
+        <button class="chat-icon-btn" type="button" title="Mic" onclick="return false;">🎤</button>
+        <button class="chat-send-btn" type="button" id="chat-send-btn" title="Send">➤</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="game-page" class="game-container hidden">
+  <div id="countdown-overlay" class="countdown-overlay hidden">
+    <div id="countdown-text" class="countdown-num">3</div>
+  </div>
+
+  <div class="game-toolbar">
+    <button class="icon-btn" id="restart-icon" title="Restart Game">↻</button>
+    <button class="icon-btn" id="pause-icon" title="Pause Game">⏸</button>
+    <button class="icon-btn" id="settings-icon" title="Settings">⚙</button>
+  </div>
+
+  <h1>Dots & Boxes</h1>
+
+  <div class="setup-panel">
+    <label for="grid-select">Grid Size</label>
+    <select id="grid-select">
+      <option value="3">Small — 3 × 3</option>
+      <option value="4" selected>Medium — 4 × 4</option>
+      <option value="5">Large — 5 × 5</option>
+    </select>
+  </div>
+
+  <div class="scoreboard">
+    <div id="p1-card" class="score-card active-p1">
+      <div class="player-name p1-text" id="player-display-name">You</div>
+      <div id="p1-score" class="score-val">0</div>
+    </div>
+    <div id="ai-card" class="score-card">
+      <div class="player-name ai-text" id="opponent-display-name">CPU</div>
+      <div id="ai-score" class="score-val">0</div>
+    </div>
+  </div>
+
+  <div id="board" class="board grid-4"></div>
+
+  <div class="controls">
+    <button class="btn-back" onclick="leaveGame()">Back to Menu</button>
+  </div>
+</div>
+
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="winner-title">Game Over</h2>
+    <p id="winner-msg"></p>
+    <button id="modal-reset-btn">Play Again</button>
+  </div>
+</div>
+
+<script>
+function setDynamicViewportHeight() {
+  const vv = window.visualViewport;
+  const vh = vv ? vv.height : window.innerHeight;
+  const offsetTop = vv ? vv.offsetTop : 0;
+
+  document.body.style.height = `${vh}px`;
+  document.body.style.top = `-${offsetTop}px`;
+
+  const chatPage = document.getElementById("chat-page");
+  if (chatPage && !chatPage.classList.contains("hidden")) {
+    chatPage.style.height = `${vh}px`;
+    const msgs = document.getElementById("chat-messages");
+    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+  }
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", setDynamicViewportHeight);
+  window.visualViewport.addEventListener("scroll", setDynamicViewportHeight);
+} else {
+  window.addEventListener("resize", setDynamicViewportHeight);
+}
+setDynamicViewportHeight();
+
+window.addEventListener("pagehide", removePresence);
+window.addEventListener("beforeunload", removePresence);
+
+// --- APPWRITE INITIALIZATION ---
+const { Client, Databases, ID, Query } = Appwrite;
+const appwriteClient = new Client();
+appwriteClient
+  .setEndpoint('https://fra.cloud.appwrite.io/v1')
+  .setProject('6a98502b0023f61a6477');
+
+const databases = new Databases(appwriteClient);
+const DATABASE_ID = '6a9853c300262f68c1fd';
+const COLLECTION_MESSAGES = 'messages';
+const COLLECTION_GAMES = 'games';
+const COLLECTION_PRESENCE = 'presence';
+
+// ── ONLINE PRESENCE SYSTEM ──────────────────────────────────────────────────
+let presenceDocId = null;
+let presenceInterval = null;
+let onlinePopupVisible = false;
+
+async function registerPresence() {
+  if (!loggedInUser) return;
+  try {
+    if (presenceDocId) {
+      await databases.updateDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId, {
+        user: loggedInUser,
+        lastSeen: new Date().toISOString()
+      });
+      return;
+    }
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_PRESENCE, [
+      Query.equal('user', loggedInUser),
+      Query.limit(1)
+    ]);
+    if (res.documents.length > 0) {
+      presenceDocId = res.documents[0].$id;
+      await databases.updateDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId, {
+        lastSeen: new Date().toISOString()
+      });
+    } else {
+      const doc = await databases.createDocument(
+        DATABASE_ID, COLLECTION_PRESENCE, ID.unique(),
+        { user: loggedInUser, lastSeen: new Date().toISOString() }
+      );
+      presenceDocId = doc.$id;
+    }
+  } catch (e) {
+    console.warn('Presence write failed:', e);
+  }
+}
+
+async function removePresence() {
+  if (presenceDocId) {
+    try {
+      await databases.deleteDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId);
+    } catch(e) {}
+    presenceDocId = null;
+  }
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
+}
+
+function startPresenceHeartbeat() {
+  registerPresence();
+  if (presenceInterval) clearInterval(presenceInterval);
+  presenceInterval = setInterval(registerPresence, 20000);
+}
+
+async function fetchOnlineUsers() {
+  try {
+    const cutoff = new Date(Date.now() - 40000).toISOString();
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_PRESENCE, [
+      Query.greaterThan('lastSeen', cutoff),
+      Query.limit(20)
+    ]);
+    return res.documents.map(d => d.user);
+  } catch(e) {
+    console.warn('Presence fetch failed:', e);
+    return [];
+  }
+}
+
+async function toggleOnlinePopup() {
+  let popup = document.getElementById("online-users-popup");
+  if (popup) {
+    popup.remove();
+    onlinePopupVisible = false;
+    return;
+  }
+
+  onlinePopupVisible = true;
+  const users = await fetchOnlineUsers();
+
+  popup = document.createElement("div");
+  popup.id = "online-users-popup";
+  popup.className = "online-popup";
+
+  let listHtml = "";
+  if (users.length === 0) {
+    listHtml = `<div class="online-empty">Koi online nahi hai</div>`;
+  } else {
+    users.forEach(u => {
+      const isMe = u === loggedInUser;
+      listHtml += `
+        <div class="online-user-row">
+          <span class="online-dot"></span>
+          <span>${escapeHtml(u)}${isMe ? ' <span style="opacity:0.5;font-size:11px;">(You)</span>' : ''}</span>
+        </div>`;
+    });
+  }
+
+  popup.innerHTML = `
+    <div class="online-popup-header">
+      <span>🟢 Online Players (${users.length})</span>
+      <span class="online-popup-close" onclick="toggleOnlinePopup()">✕</span>
+    </div>
+    <div class="online-popup-list">${listHtml}</div>
+  `;
+
+  document.getElementById("chat-page").appendChild(popup);
+}
+
+document.addEventListener("click", (e) => {
+  if (!onlinePopupVisible) return;
+  const popup = document.getElementById("online-users-popup");
+  const btn = document.getElementById("online-status-btn");
+  if (popup && !popup.contains(e.target) && !btn.contains(e.target)) {
+    popup.remove();
+    onlinePopupVisible = false;
+  }
+});
+
+let loggedInUser = "";
+let currentPrimaryColor = "#3295ff";
+let soundEnabled = true;
+
+let gameMode = "vs_computer";
+let isOnlineGame = false;
+
+let onlineSearchInterval = null;
+let onlineGameId = null;
+let onlineGameUnsubscribe = null;
+let myPlayerSymbol = "p1";
+
+let activeReplyTo = null;
+let messageUnsubscribe = null;
+let knownMessageIds = new Set();
+let renderedMessageIds = new Set();
+
+const GIPHY_API_KEY = "3O4p74U20N7f8uW09X7C6wF4v0I8C4Ff";
+
+let size = 4;
+let boardState = { h: [], v: [], boxes: [] };
+let currentPlayer = "p1";
+let scores = { p1: 0, ai: 0 };
+let gameOver = false;
+
+const pages = [
+  "login-page",
+  "main-menu",
+  "game-mode-page",
+  "online-search-page",
+  "settings-page",
+  "leaderboard-page",
+  "chat-page",
+  "game-page"
+];
+
+function showPage(pageId) {
+  if (pageId !== 'chat-page' && messageUnsubscribe) {
+    messageUnsubscribe();
+    messageUnsubscribe = null;
+  }
+  if (pageId !== 'chat-page') {
+    closePickerPanel();
+  }
+
+  pages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
+
+  const target = document.getElementById(pageId);
+  if (target) target.classList.remove("hidden");
+
+  if (pageId === "chat-page") {
+    startPresenceHeartbeat();
+    subscribeToMessages();
+  }
+}
+
+function login() {
+  const inputEl = document.getElementById("user-id");
+  const val = inputEl.textContent.trim();
+
+  if (!val) {
+    alert("Kripya Player ID daalein!");
+    return;
+  }
+
+  loggedInUser = val;
+  document.getElementById("welcome-text").textContent = `Welcome, ${loggedInUser}!`;
+  document.getElementById("player-display-name").textContent = loggedInUser;
+  showPage("main-menu");
+}
+
+function quit() {
+  removePresence();
+  loggedInUser = "";
+  document.getElementById("user-id").textContent = "";
+  showPage("login-page");
+}
+
+function submitCoupon() {
+  const couponEl = document.getElementById("coupon-code");
+  const code = couponEl.textContent.trim();
+
+  if (code === "311030") {
+    couponEl.textContent = "";
+    showPage("chat-page");
+  } else {
+    alert("Invalid Coupon Code");
+  }
+}
+
+function changeTheme(primary, bg, btnElement) {
+  currentPrimaryColor = primary;
+  document.documentElement.style.setProperty("--accent", primary);
+
+  if (bg) {
+    document.documentElement.style.setProperty("--bg2", bg);
+  }
+
+  const buttons = document.querySelectorAll('.color-btn');
+  buttons.forEach(btn => btn.classList.remove('selected'));
+  if (btnElement) {
+    btnElement.classList.add('selected');
+  }
+}
+
+// ── FULL HTML INLINE GIF EMOJI & PICKER SYSTEM ─────────────────────────────
+let pickerOpen = false;
+
+function togglePickerPanel() {
+  const panel = document.getElementById("chat-picker-panel");
+  if (pickerOpen) {
+    closePickerPanel();
+  } else {
+    panel.classList.remove("hidden");
+    pickerOpen = true;
+    fetchGiphyEmojis();
+  }
+}
+
+function closePickerPanel() {
+  const panel = document.getElementById("chat-picker-panel");
+  if (panel) panel.classList.add("hidden");
+  pickerOpen = false;
+}
+
+// Fetch Mini GIF Emojis from Giphy
+async function fetchGiphyEmojis(query = "") {
+  const grid = document.getElementById("gif-grid");
+  grid.innerHTML = '<div class="gif-loading">Mini GIF Emojis load ho rahe hain...</div>';
+
+  let url = `https://api.giphy.com/v1/emoji?api_key=${GIPHY_API_KEY}&limit=35`;
+  if (query.trim()) {
+    url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query + " emoji")}&limit=35&rating=g`;
+  }
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    renderGifEmojiGrid(data.data || []);
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = '<div class="gif-loading" style="color:#ff6b6b">GIFs load nahi ho sakay.</div>';
+  }
+}
+
+function renderGifEmojiGrid(gifs) {
+  const grid = document.getElementById("gif-grid");
+  grid.innerHTML = "";
+
+  if (!gifs.length) {
+    grid.innerHTML = '<div class="gif-loading">Koi GIF Emoji nahi mila.</div>';
+    return;
+  }
+
+  gifs.forEach(gif => {
+    const miniUrl = gif.images?.fixed_height_small?.url || gif.images?.fixed_height?.url;
+    if (!miniUrl) return;
+
+    const item = document.createElement("div");
+    item.className = "gif-emoji-item";
+
+    const img = document.createElement("img");
+    img.src = miniUrl;
+    img.alt = "emoji";
+    img.loading = "lazy";
+
+    item.appendChild(img);
+    item.onclick = () => insertMiniGifEmoji(miniUrl);
+    grid.appendChild(item);
+  });
+}
+
+function searchGifs() {
+  const q = document.getElementById("gif-search-input").value;
+  fetchGiphyEmojis(q);
+}
+
+document.getElementById("gif-search-input")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") searchGifs();
+});
+
+// Insert Mini GIF into editable chat input area
+function insertMiniGifEmoji(url) {
+  const input = document.getElementById("chat-input");
+  input.focus();
+
+  const img = document.createElement("img");
+  img.src = url;
+  img.className = "mini-gif-emoji";
+  img.contentEditable = "false";
+
+  const sel = window.getSelection();
+  if (sel.getRangeAt && sel.rangeCount) {
+    let range = sel.getRangeAt(0);
+    if (!input.contains(range.commonAncestorContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(input);
+      range.collapse(false);
+    }
+    range.insertNode(img);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    input.appendChild(img);
+  }
+}
+
+// Convert HTML input content to readable message text
+function getChatInputContent() {
+  const input = document.getElementById("chat-input");
+  let content = "";
+
+  input.childNodes.forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      content += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.tagName === "IMG" && node.classList.contains("mini-gif-emoji")) {
+        content += `[GIF_EMOJI:${node.src}]`;
+      } else {
+        content += node.innerText || node.textContent;
+      }
+    }
+  });
+
+  return content.trim();
+}
+
+// Convert stored bracket notation into formatted HTML (with mini GIF images)
+function formatChatMessageContent(text) {
+  if (!text) return "";
+  let safe = escapeHtml(text);
+  
+  // Replace GIF Emojis
+  safe = safe.replace(/\[GIF_EMOJI:(https?:\/\/[^\]]+)\]/g, (match, url) => {
+    return `<img src="${url}" class="mini-gif-emoji" alt="emoji" />`;
+  });
+
+  return safe;
+}
+
+// ── CHAT SYSTEM ─────────────────────────────────────────────────────────────
+async function subscribeToMessages() {
+  const msgsContainer = document.getElementById("chat-messages");
+  msgsContainer.innerHTML = '<div class="gif-loading">Messages load ho rahe hain...</div>';
+
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      [Query.orderDesc("$createdAt"), Query.limit(30)]
+    );
+
+    msgsContainer.innerHTML = "";
+    knownMessageIds.clear();
+    renderedMessageIds.clear();
+
+    const docs = response.documents.reverse();
+    docs.forEach(doc => {
+      knownMessageIds.add(doc.$id);
+      addChatMessageDoc(doc, doc.sender === loggedInUser ? "mine" : "other");
+    });
+
+    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+  } catch (error) {
+    console.error(error);
+    msgsContainer.innerHTML = '<div class="gif-loading" style="color:#ff6b6b">Chat history load nahi ho saki.</div>';
+  }
+
+  if (messageUnsubscribe) messageUnsubscribe();
+
+  messageUnsubscribe = appwriteClient.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_MESSAGES}.documents`,
+    response => {
+      const event = response.events[0];
+      const doc = response.payload;
+
+      if (event.includes(".create")) {
+        if (!knownMessageIds.has(doc.$id)) {
+          knownMessageIds.add(doc.$id);
+          addChatMessageDoc(doc, doc.sender === loggedInUser ? "mine" : "other");
+          trimChatToMax30();
+        }
+      } else if (event.includes(".update")) {
+        updateChatMessageDoc(doc);
+      } else if (event.includes(".delete")) {
+        removeChatMessageDoc(doc.$id);
+      }
+    }
+  );
+}
+
+function trimChatToMax30() {
+  const container = document.getElementById("chat-messages");
+  const bubbles = Array.from(container.querySelectorAll(".chat-message"));
+  if (bubbles.length > 30) {
+    const toRemove = bubbles.slice(0, bubbles.length - 30);
+    toRemove.forEach(el => {
+      renderedMessageIds.delete(el.dataset.id);
+      el.remove();
+    });
+  }
+}
+
+function addChatMessageDoc(doc, type) {
+  if (renderedMessageIds.has(doc.$id)) return;
+  renderedMessageIds.add(doc.$id);
+
+  const container = document.getElementById("chat-messages");
+  const msgEl = document.createElement("div");
+  msgEl.className = `chat-message ${type}`;
+  msgEl.dataset.id = doc.$id;
+
+  let replyBlock = "";
+  if (doc.replyTo) {
+    try {
+      const r = typeof doc.replyTo === "string" ? JSON.parse(doc.replyTo) : doc.replyTo;
+      replyBlock = `<div class="reply-quote"><b>${escapeHtml(r.sender)}:</b> ${formatChatMessageContent(r.text)}</div>`;
+    } catch(e) {}
+  }
+
+  const formattedText = formatChatMessageContent(doc.text);
+
+  let editedTag = doc.isEdited ? `<span class="edited-tag">(edited)</span>` : "";
+
+  let reactionsHtml = "";
+  if (doc.reactions) {
+    try {
+      const reactObj = typeof doc.reactions === "string" ? JSON.parse(doc.reactions) : doc.reactions;
+      reactionsHtml = renderReactionsBar(reactObj, doc.$id);
+    } catch(e) {}
+  }
+
+  const isMine = (doc.sender === loggedInUser);
+  const actionsBtnHtml = `
+    <div class="msg-actions">
+      <button class="msg-act-btn" onclick="setReplyTarget('${doc.$id}', '${escapeHtml(doc.sender)}', \`${escapeHtml(doc.text)}\`)">Reply</button>
+      ${isMine ? `<button class="msg-act-btn" onclick="editChatMessage('${doc.$id}', \`${escapeHtml(doc.text)}\`)">Edit</button>` : ''}
+      ${isMine ? `<button class="msg-act-btn" onclick="deleteChatMessage('${doc.$id}')" style="color:#ff6b6b;">Delete</button>` : ''}
+    </div>
+  `;
+
+  msgEl.innerHTML = `
+    <div class="chat-sender">${escapeHtml(doc.sender)} ${editedTag}</div>
+    ${replyBlock}
+    <div class="msg-text-content">${formattedText}</div>
+    <div id="reactions-${doc.$id}">${reactionsHtml}</div>
+    ${actionsBtnHtml}
+  `;
+
+  msgEl.addEventListener("click", (e) => {
+    if (e.target.tagName === "BUTTON" || e.target.classList.contains("msg-act-btn") || e.target.classList.contains("reaction-badge")) return;
+    document.querySelectorAll(".chat-message.actions-open").forEach(m => {
+      if (m !== msgEl) m.classList.remove("actions-open");
+    });
+    msgEl.classList.toggle("actions-open");
+  });
+
+  container.appendChild(msgEl);
+  container.scrollTop = container.scrollHeight;
+}
+
+function updateChatMessageDoc(doc) {
+  const msgEl = document.querySelector(`.chat-message[data-id="${doc.$id}"]`);
+  if (!msgEl) return;
+
+  const textNode = msgEl.querySelector(".msg-text-content");
+  if (textNode) {
+    textNode.innerHTML = formatChatMessageContent(doc.text);
+  }
+
+  const senderNode = msgEl.querySelector(".chat-sender");
+  if (senderNode && doc.isEdited) {
+    if (!senderNode.querySelector(".edited-tag")) {
+      senderNode.innerHTML += ` <span class="edited-tag">(edited)</span>`;
+    }
+  }
+
+  if (doc.reactions) {
+    try {
+      const reactObj = typeof doc.reactions === "string" ? JSON.parse(doc.reactions) : doc.reactions;
+      const rContainer = document.getElementById(`reactions-${doc.$id}`);
+      if (rContainer) rContainer.innerHTML = renderReactionsBar(reactObj, doc.$id);
+    } catch(e) {}
+  }
+}
+
+function removeChatMessageDoc(docId) {
+  const msgEl = document.querySelector(`.chat-message[data-id="${docId}"]`);
+  if (msgEl) {
+    msgEl.remove();
+    renderedMessageIds.delete(docId);
+  }
+}
+
+function renderReactionsBar(reactObj, docId) {
+  let html = `<div class="reactions-bar">`;
+  let count = 0;
+  for (const [emoji, users] of Object.entries(reactObj)) {
+    if (Array.isArray(users) && users.length > 0) {
+      count++;
+      const userReacted = users.includes(loggedInUser);
+      html += `
+        <div class="reaction-badge ${userReacted ? 'user-reacted' : ''}" onclick="toggleReaction('${docId}', '${emoji}')">
+          <span>${emoji}</span> <span>${users.length}</span>
+        </div>`;
+    }
+  }
+  html += `</div>`;
+  return count > 0 ? html : "";
+}
+
+async function sendChatMessage() {
+  const textContent = getChatInputContent();
+  if (!textContent) return;
+
+  closePickerPanel();
+
+  const payload = {
+    sender: loggedInUser,
+    text: textContent,
+    createdAt: new Date().toISOString()
+  };
+
+  if (activeReplyTo) {
+    payload.replyTo = JSON.stringify(activeReplyTo);
+    cancelReply();
+  }
+
+  document.getElementById("chat-input").innerHTML = "";
+
+  try {
+    const newDoc = await databases.createDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      ID.unique(),
+      payload
+    );
+    addChatMessageDoc(newDoc, "mine");
+    trimChatToMax30();
+  } catch (error) {
+    console.error(error);
+    alert("Message send nahi ho saka.");
+  }
+}
+
+function setReplyTarget(msgId, sender, text) {
+  activeReplyTo = { id: msgId, sender, text };
+  document.getElementById("reply-preview-text").textContent = `Replying to ${sender}: ${text}`;
+  document.getElementById("reply-preview-bar").classList.remove("hidden");
+  document.querySelectorAll(".chat-message.actions-open").forEach(m => m.classList.remove("actions-open"));
+}
+
+function cancelReply() {
+  activeReplyTo = null;
+  document.getElementById("reply-preview-bar").classList.add("hidden");
+}
+
+async function editChatMessage(docId, oldText) {
+  const newText = prompt("Message edit karo:", oldText);
+  if (!newText || newText === oldText) return;
+
+  try {
+    await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      docId,
+      { text: newText, isEdited: true }
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Message edit nahi ho saka.");
+  }
+}
+
+async function deleteChatMessage(docId) {
+  if (!confirm("Kya aap yeh message delete karna chahte hain?")) return;
+
+  try {
+    await databases.deleteDocument(DATABASE_ID, COLLECTION_MESSAGES, docId);
+    removeChatMessageDoc(docId);
+  } catch (err) {
+    console.error(err);
+    alert("Delete nahi ho saka.");
+  }
+}
+
+async function clearAllChats() {
+  if (!confirm("Kya aap saare messages delete karna chahte hain?")) return;
+  try {
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_MESSAGES, [Query.limit(100)]);
+    for (const doc of res.documents) {
+      await databases.deleteDocument(DATABASE_ID, COLLECTION_MESSAGES, doc.$id);
+    }
+    document.getElementById("chat-messages").innerHTML = "";
+    renderedMessageIds.clear();
+    knownMessageIds.clear();
+  } catch(e) {
+    console.error(e);
+    alert("Chats clear nahi ho sake.");
+  }
+}
+
+function escapeHtml(unsafe) {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Close picker when clicking outside
+document.addEventListener("click", (e) => {
+  if (!pickerOpen) return;
+  const panel = document.getElementById("chat-picker-panel");
+  const emojiBtn = document.querySelector(".chat-emoji-open-btn");
+  if (panel && !panel.contains(e.target) && emojiBtn && !emojiBtn.contains(e.target)) {
+    closePickerPanel();
+  }
+});
+
+document.getElementById("chat-send-btn").addEventListener("click", sendChatMessage);
+document.getElementById("modal-reset-btn").addEventListener("click", handleRestart);
+
+// ── ONLINE MATCHMAKING & GAME LOGIC ──────────────────────────────────────────
+async function startComputerGame() {
+  gameMode = "vs_computer";
+  isOnlineGame = false;
+  document.getElementById("opponent-display-name").textContent = "CPU";
+  showPage("game-page");
+  initGame();
+}
+
+async function startOnlineSearch() {
+  showPage("online-search-page");
+  gameMode = "vs_online";
+  isOnlineGame = true;
+
+  try {
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_GAMES, [
+      Query.equal("status", "waiting"),
+      Query.limit(1)
+    ]);
+
+    if (res.documents.length > 0) {
+      const openGame = res.documents[0];
+      if (openGame.p1 !== loggedInUser) {
+        onlineGameId = openGame.$id;
+        myPlayerSymbol = "ai";
+        await databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, onlineGameId, {
+          p2: loggedInUser,
+          status: "playing"
+        });
+        joinOnlineGame();
+        return;
+      }
+    }
+
+    const newGame = await databases.createDocument(DATABASE_ID, COLLECTION_GAMES, ID.unique(), {
+      p1: loggedInUser,
+      p2: "",
+      status: "waiting",
+      boardData: JSON.stringify({ h: [], v: [], boxes: [] }),
+      turn: "p1",
+      p1Score: 0,
+      p2Score: 0
+    });
+
+    onlineGameId = newGame.$id;
+    myPlayerSymbol = "p1";
+
+    onlineSearchInterval = setInterval(async () => {
+      try {
+        const gDoc = await databases.getDocument(DATABASE_ID, COLLECTION_GAMES, onlineGameId);
+        if (gDoc.status === "playing") {
+          clearInterval(onlineSearchInterval);
+          joinOnlineGame();
+        }
+      } catch (e) { console.error(e); }
+    }, 2000);
+
+  } catch (err) {
+    console.error(err);
+    alert("Online matchmaking fail ho gayi.");
+    showPage("main-menu");
+  }
+}
+
+function cancelOnlineSearch() {
+  if (onlineSearchInterval) clearInterval(onlineSearchInterval);
+  if (onlineGameId) {
+    databases.deleteDocument(DATABASE_ID, COLLECTION_GAMES, onlineGameId).catch(() => {});
+  }
+  showPage("main-menu");
+}
+
+async function joinOnlineGame() {
+  const gDoc = await databases.getDocument(DATABASE_ID, COLLECTION_GAMES, onlineGameId);
+  const oppName = (myPlayerSymbol === "p1") ? gDoc.p2 : gDoc.p1;
+  document.getElementById("opponent-display-name").textContent = oppName || "Opponent";
+
+  showPage("game-page");
+  initGame();
+
+  if (onlineGameUnsubscribe) onlineGameUnsubscribe();
+  onlineGameUnsubscribe = appwriteClient.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_GAMES}.documents.${onlineGameId}`,
+    response => {
+      const g = response.payload;
+      if (g.boardData) {
+        boardState = JSON.parse(g.boardData);
+        currentPlayer = g.turn;
+        scores.p1 = g.p1Score;
+        scores.ai = g.p2Score;
+        renderBoard();
+        updateScoreboard();
+        checkGameOver();
+      }
+    }
+  );
+}
+
+function syncOnlineState() {
+  if (!isOnlineGame || !onlineGameId) return;
+  databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, onlineGameId, {
+    boardData: JSON.stringify(boardState),
+    turn: currentPlayer,
+    p1Score: scores.p1,
+    p2Score: scores.ai
+  }).catch(console.error);
+}
+
+function leaveGame() {
+  if (onlineGameUnsubscribe) {
+    onlineGameUnsubscribe();
+    onlineGameUnsubscribe = null;
+  }
+  showPage("main-menu");
+}
+
+// ── BOARD & GAME MECHANICS ───────────────────────────────────────────────────
+const gridSelect = document.getElementById("grid-select");
+const restartIcon = document.getElementById("restart-icon");
+
+gridSelect.addEventListener("change", () => {
+  size = parseInt(gridSelect.value, 10);
+  initGame();
+});
+
+restartIcon.addEventListener("click", handleRestart);
+
+function handleRestart() {
+  document.getElementById("game-over-modal").style.display = "none";
+  initGame();
+}
+
+function initGame() {
+  size = parseInt(gridSelect.value, 10);
+  boardState.h = Array.from({ length: size + 1 }, () => Array(size).fill(null));
+  boardState.v = Array.from({ length: size }, () => Array(size + 1).fill(null));
+  boardState.boxes = Array.from({ length: size }, () => Array(size).fill(null));
+
+  currentPlayer = "p1";
+  scores = { p1: 0, ai: 0 };
+  gameOver = false;
+
+  renderBoard();
+  updateScoreboard();
+
+  if (isOnlineGame) syncOnlineState();
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById("board");
+  boardEl.className = `board grid-${size}`;
+  boardEl.innerHTML = "";
+
+  for (let r = 0; r < size * 2 + 1; r++) {
+    const rowEl = document.createElement("div");
+    rowEl.className = "row";
+
+    if (r % 2 === 0) {
+      const hRow = r / 2;
+      for (let c = 0; c < size; c++) {
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        rowEl.appendChild(dot);
+
+        const hLine = document.createElement("div");
+        hLine.className = "h-line line";
+        const val = boardState.h[hRow][c];
+        if (val) hLine.classList.add("taken", val);
+        else hLine.onclick = () => handleLineClick("h", hRow, c);
+
+        rowEl.appendChild(hLine);
+      }
+      const endDot = document.createElement("div");
+      endDot.className = "dot";
+      rowEl.appendChild(endDot);
+    } else {
+      const vRow = Math.floor(r / 2);
+      for (let c = 0; c <= size; c++) {
+        const vLine = document.createElement("div");
+        vLine.className = "v-line line";
+        const val = boardState.v[vRow][c];
+        if (val) vLine.classList.add("taken", val);
+        else vLine.onclick = () => handleLineClick("v", vRow, c);
+
+        rowEl.appendChild(vLine);
+
+        if (c < size) {
+          const box = document.createElement("div");
+          box.className = "box";
+          const bVal = boardState.boxes[vRow][c];
+          if (bVal) {
+            box.classList.add(`filled-${bVal}`);
+            box.textContent = bVal === "p1" ? "P1" : (isOnlineGame ? "P2" : "CPU");
+          }
+          rowEl.appendChild(box);
+        }
+      }
+    }
+    boardEl.appendChild(rowEl);
+  }
+}
+
+function handleLineClick(type, r, c) {
+  if (gameOver) return;
+
+  if (isOnlineGame) {
+    if (currentPlayer !== myPlayerSymbol) return;
+  } else {
+    if (currentPlayer !== "p1") return;
+  }
+
+  if (type === "h" && boardState.h[r][c]) return;
+  if (type === "v" && boardState.v[r][c]) return;
+
+  makeMove(type, r, c, currentPlayer);
+
+  if (isOnlineGame) {
+    syncOnlineState();
+  } else if (currentPlayer === "ai" && !gameOver) {
+    setTimeout(aiMove, 500);
+  }
+}
+
+function makeMove(type, r, c, player) {
+  if (type === "h") boardState.h[r][c] = player;
+  else boardState.v[r][c] = player;
+
+  const completedBoxes = checkBoxes(type, r, c, player);
+
+  if (completedBoxes > 0) {
+    scores[player] += completedBoxes;
+  } else {
+    currentPlayer = (currentPlayer === "p1") ? "ai" : "p1";
+  }
+
+  renderBoard();
+  updateScoreboard();
+  checkGameOver();
+}
+
+function checkBoxes(type, r, c, player) {
+  let count = 0;
+  if (type === "h") {
+    if (r > 0 && isBoxComplete(r - 1, c)) {
+      boardState.boxes[r - 1][c] = player;
+      count++;
+    }
+    if (r < size && isBoxComplete(r, c)) {
+      boardState.boxes[r][c] = player;
+      count++;
+    }
+  } else {
+    if (c > 0 && isBoxComplete(r, c - 1)) {
+      boardState.boxes[r][c - 1] = player;
+      count++;
+    }
+    if (c < size && isBoxComplete(r, c)) {
+      boardState.boxes[r][c] = player;
+      count++;
+    }
+  }
+  return count;
+}
+
+function isBoxComplete(r, c) {
+  return (
+    boardState.h[r][c] !== null &&
+    boardState.h[r + 1][c] !== null &&
+    boardState.v[r][c] !== null &&
+    boardState.v[r][c + 1] !== null
+  );
+}
+
+function aiMove() {
+  if (gameOver || currentPlayer !== "ai") return;
+
+  let moves = [];
+
+  for (let r = 0; r <= size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!boardState.h[r][c]) {
+        if (createsBox("h", r, c)) {
+          makeMove("h", r, c, "ai");
+          if (currentPlayer === "ai" && !gameOver) setTimeout(aiMove, 400);
+          return;
+        }
+        moves.push({ type: "h", r, c });
+      }
+    }
+  }
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c <= size; c++) {
+      if (!boardState.v[r][c]) {
+        if (createsBox("v", r, c)) {
+          makeMove("v", r, c, "ai");
+          if (currentPlayer === "ai" && !gameOver) setTimeout(aiMove, 400);
+          return;
+        }
+        moves.push({ type: "v", r, c });
+      }
+    }
+  }
+
+  if (moves.length > 0) {
+    const choice = moves[Math.floor(Math.random() * moves.length)];
+    makeMove(choice.type, choice.r, choice.c, "ai");
+    if (currentPlayer === "ai" && !gameOver) setTimeout(aiMove, 400);
+  }
+}
+
+function createsBox(type, r, c) {
+  boardState[type][r][c] = "ai";
+  let complete = false;
+  if (type === "h") {
+    if ((r > 0 && isBoxComplete(r - 1, c)) || (r < size && isBoxComplete(r, c))) complete = true;
+  } else {
+    if ((c > 0 && isBoxComplete(r, c - 1)) || (c < size && isBoxComplete(r, c))) complete = true;
+  }
+  boardState[type][r][c] = null;
+  return complete;
+}
+
+function updateScoreboard() {
+  document.getElementById("p1-score").textContent = scores.p1;
+  document.getElementById("ai-score").textContent = scores.ai;
+
+  const p1Card = document.getElementById("p1-card");
+  const aiCard = document.getElementById("ai-card");
+
+  if (currentPlayer === "p1") {
+    p1Card.classList.add("active-p1");
+    aiCard.classList.remove("active-ai");
+  } else {
+    aiCard.classList.add("active-ai");
+    p1Card.classList.remove("active-p1");
+  }
+}
+
+function checkGameOver() {
+  const total = size * size;
+  if (scores.p1 + scores.ai === total) {
+    gameOver = true;
+    const modal = document.getElementById("game-over-modal");
+    const title = document.getElementById("winner-title");
+    const msg = document.getElementById("winner-msg");
+
+    if (scores.p1 > scores.ai) {
+      title.textContent = "Jeet Gaye! 🎉";
+      msg.textContent = `${loggedInUser} ne match jeet liya!`;
+    } else if (scores.ai > scores.p1) {
+      title.textContent = "Khel Khatam!";
+      msg.textContent = `${isOnlineGame ? 'Opponent' : 'CPU'} jeet gaya!`;
+    } else {
+      title.textContent = "Match Draw!";
+      msg.textContent = "Dono ka score barabar raha.";
+    }
+
+    modal.style.display = "flex";
+  }
+}
+</script>
+
+</body>
+</html>
