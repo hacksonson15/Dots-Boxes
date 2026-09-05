@@ -1,0 +1,2809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080b18">
+<title>Dots & Boxes 3D</title>
+<link rel="preconnect" href="https://fra.cloud.appwrite.io">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+
+<style>
+:root {
+  --bg:#080b18;
+  --bg2:#11182d;
+  --border:rgba(255,255,255,.14);
+  --text:#f8fafc;
+  --muted:#9aa8c7;
+  --accent:#3295ff;
+  --p2-color:#ff3eaa;
+  --shadow:0 25px 70px rgba(0,0,0,.55);
+}
+
+* {
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  user-select:none;
+}
+
+html {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  position:fixed;
+  top:0;
+  left:0;
+  overscroll-behavior:none;
+}
+
+body {
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  touch-action:none;
+  position:fixed;
+  top:0;
+  left:0;
+  overscroll-behavior:none;
+}
+
+body {
+  padding:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--bg2));
+  /* Radial glows moved to a pseudo-element so they don't repaint on scroll/resize */
+}
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(65,130,255,.18),transparent 35%),
+    radial-gradient(circle at 90% 90%,rgba(200,50,255,.14),transparent 35%);
+  pointer-events:none;
+  z-index:0;
+  will-change:auto;
+}
+.card,.game-container,.chat-container { position:relative; z-index:1; }
+
+.hidden {
+  display:none!important;
+}
+
+.card,
+.game-container,
+.chat-container {
+  width:min(94vw,680px);
+  max-height:calc(100dvh - 24px);
+  padding:24px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.13);
+  animation:cardIn .4s ease;
+  overflow-y:auto;
+  will-change:transform;
+  transform:translateZ(0);
+}
+
+.card {
+  width:min(92vw,400px);
+}
+
+.game-container {
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+}
+
+@keyframes cardIn {
+  from { opacity:0;transform:translateY(20px) scale(.96); }
+  to { opacity:1;transform:translateY(0) scale(1); }
+}
+
+h1 {
+  width:100%;
+  padding-right:120px;
+  margin-bottom:12px;
+  text-align:left;
+  font-size:clamp(1.4rem,4vw,2.2rem);
+  letter-spacing:1px;
+  background:linear-gradient(90deg,#fff,var(--accent),var(--p2-color));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+h2 {
+  margin-bottom:16px;
+  font-size:1.8rem;
+}
+
+p {
+  color:var(--muted);
+}
+
+.fake-input {
+  width:100%;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  outline:none;
+  color:white;
+  background:rgba(0,0,0,.25);
+  font-size:15px;
+  margin:10px 0 16px;
+  min-height:46px;
+  line-height:1.4;
+  cursor:text;
+  white-space:nowrap;
+  overflow:hidden;
+  position:relative;
+}
+
+.fake-input:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(114,167,255,.14);
+}
+
+.fake-input:empty::before {
+  content:attr(data-placeholder);
+  color:#71809e;
+  pointer-events:none;
+}
+
+.fake-input-chat {
+  flex:1;
+  min-height:36px;
+  max-height:100px;
+  padding:8px 12px;
+  background:#0d1117;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:22px;
+  outline:none;
+  color:#fff;
+  font-size:14px;
+  line-height:1.4;
+  cursor:text;
+  word-break:break-word;
+  overflow-y:auto;
+  user-select:text;
+  -webkit-user-select:text;
+}
+
+.fake-input-chat:focus {
+  border-color:#3295ff;
+  box-shadow:0 0 0 3px rgba(50,149,255,.15);
+}
+
+.fake-input-chat:empty::before {
+  content:attr(data-placeholder);
+  color:#555e72;
+  pointer-events:none;
+}
+
+button {
+  width:100%;
+  margin:6px 0;
+  padding:12px 16px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  color:#07101e;
+  background:linear-gradient(135deg,#91bdff,var(--accent));
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s ease;
+  box-shadow:0 6px 0 #426da9,0 12px 22px rgba(64,135,255,.25);
+}
+
+button:hover {
+  transform:translateY(-2px);
+  opacity:0.92;
+}
+
+button:active {
+  transform:translateY(3px);
+  box-shadow:0 2px 0 #426da9;
+}
+
+.btn-back {
+  color:white;
+  background:linear-gradient(135deg,#465273,#29334f);
+  box-shadow:0 6px 0 #1a2239,0 12px 20px rgba(0,0,0,.25);
+}
+
+#login-page h2 {
+  background:linear-gradient(90deg,#fff,var(--accent));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 11, 24, 0.90);
+  backdrop-filter: blur(3px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-num {
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--accent);
+  animation: popNum 0.8s ease infinite;
+}
+
+@keyframes popNum {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.setting-item {
+  margin:16px 0;
+  padding:14px;
+  text-align:left;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.045);
+}
+
+.toggle-container {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.color-options {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:12px;
+}
+
+.color-btn {
+  width:36px;
+  height:36px;
+  padding:0;
+  border:3px solid rgba(255,255,255,.75);
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.color-btn.selected {
+  transform: scale(1.15);
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.8);
+}
+
+.switch {
+  position:relative;
+  width:50px;
+  height:26px;
+}
+
+.switch input {
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider {
+  position:absolute;
+  inset:0;
+  cursor:pointer;
+  border-radius:30px;
+  background:#39445f;
+}
+
+.slider::before {
+  content:"";
+  position:absolute;
+  width:20px;
+  height:20px;
+  left:3px;
+  bottom:3px;
+  border-radius:50%;
+  background:white;
+  transition:.3s;
+}
+
+.switch input:checked + .slider {
+  background:var(--accent);
+}
+
+.switch input:checked + .slider::before {
+  transform:translateX(24px);
+}
+
+.alert-info {
+  margin-bottom:14px;
+  padding:11px;
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  color:#dce8ff;
+  background:rgba(114,167,255,.12);
+  font-size:14px;
+}
+
+.game-toolbar {
+  position:absolute;
+  top:16px;
+  right:16px;
+  z-index:5;
+  display:flex;
+  gap:6px;
+}
+
+.icon-btn {
+  width:34px;
+  height:34px;
+  margin:0;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#eaf2ff;
+  background:linear-gradient(145deg,#35476c,#1a2744);
+  font-size:18px;
+  box-shadow:0 4px 0 #111b31,0 6px 12px rgba(0,0,0,.35);
+}
+
+.setup-panel {
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  padding:10px 14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+}
+
+.setup-panel label {
+  color:var(--muted);
+  font-weight:700;
+  font-size:14px;
+}
+
+.setup-panel select {
+  width:auto;
+  padding:6px 10px;
+  background:#26334f;
+  font-size:14px;
+  color: white;
+  border-radius: 8px;
+}
+
+.scoreboard {
+  display:flex;
+  width:100%;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.score-card {
+  flex:1;
+  padding:10px;
+  border:2px solid transparent;
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+}
+
+.score-card.active-p1 {
+  border-color:var(--accent);
+  box-shadow:0 0 18px var(--accent);
+}
+
+.score-card.active-ai {
+  border-color:var(--p2-color);
+  box-shadow:0 0 18px var(--p2-color);
+}
+
+.player-name {
+  margin-bottom:3px;
+  color:var(--muted);
+  font-size:.85rem;
+}
+
+.score-val {
+  font-size:1.6rem;
+  font-weight:900;
+}
+
+.p1-text { color:var(--accent); }
+.ai-text { color:var(--p2-color); }
+
+.board {
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto;
+  padding:12px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(2,8,23,.62);
+  touch-action:none;
+}
+
+.board .row {
+  width:max-content;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.dot {
+  width:12px;
+  height:12px;
+  flex:0 0 12px;
+  z-index:2;
+  border-radius:50%;
+  background:#aebbd4;
+  box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 10px rgba(174,187,212,.6);
+}
+
+.h-line,
+.v-line {
+  z-index:1;
+  border-radius:6px;
+  background:#26344d;
+  cursor:pointer;
+  transition:background .15s,box-shadow .15s;
+  will-change:background;
+}
+
+.h-line:hover:not(.taken),
+.v-line:hover:not(.taken) {
+  background:#6680a9;
+  box-shadow:0 0 10px rgba(114,167,255,.8);
+}
+
+.h-line { height:10px; }
+.v-line { width:10px; }
+
+.grid-3 .h-line { width:60px; }
+.grid-3 .v-line { height:60px; }
+.grid-3 .box { width:60px;height:60px; }
+
+.grid-4 .h-line { width:46px; }
+.grid-4 .v-line { height:46px; }
+.grid-4 .box { width:46px;height:46px; }
+
+.grid-5 .h-line { width:34px; }
+.grid-5 .v-line { height:34px; }
+.grid-5 .box { width:34px;height:34px; }
+
+.line.taken.p1 {
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent);
+  cursor:default;
+}
+
+.line.taken.ai {
+  background:var(--p2-color);
+  box-shadow:0 0 12px var(--p2-color);
+  cursor:default;
+}
+
+.box {
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.04);
+  border-radius:6px;
+  font-size:1.1rem;
+  font-weight:900;
+  text-transform: uppercase;
+}
+
+.box.filled-p1 {
+  color:#ffffff;
+  background:var(--accent);
+  opacity:0.85;
+}
+
+.box.filled-ai {
+  color:#ffffff;
+  background:var(--p2-color);
+  opacity:0.85;
+}
+
+.controls {
+  width:100%;
+  margin-top:12px;
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.82);
+  backdrop-filter:blur(4px);
+}
+
+.modal-content {
+  width:min(92vw,360px);
+  padding:26px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:22px;
+  background:linear-gradient(145deg,#293655,#151d34);
+}
+
+.modal-content h2 {
+  color:var(--accent);
+}
+
+.modal-content p {
+  margin-bottom:18px;
+}
+
+/* ==================== CHAT STYLES ==================== */
+/* Chat container: true fullscreen, no card frame */
+.chat-container {
+  position:fixed !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  border:none !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  background:#0d1117 !important;
+  padding:0 !important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  text-align:left;
+  z-index:5;
+  animation:none !important;
+}
+
+/* Header */
+.chat-header {
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  padding-top:max(10px, env(safe-area-inset-top));
+  background:#161b27;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  min-height:56px;
+}
+
+.chat-header-left {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.chat-avatar {
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#3295ff,#a855f7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.chat-header-info {
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+
+.chat-header-name {
+  font-size:15px;
+  font-weight:600;
+  color:#fff;
+}
+
+.chat-header-sub {
+  font-size:11px;
+  color:#3295ff;
+}
+
+.chat-header-actions {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.chat-header button {
+  width:auto;
+  margin:0;
+  padding:7px 12px;
+  font-size:12px;
+  border-radius:20px;
+}
+
+/* Messages area */
+.chat-messages {
+  flex:1;
+  min-height:0;
+  padding:10px 12px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  contain:strict;
+  background:#0d1117;
+}
+
+/* Message bubbles — smaller, tighter like WhatsApp */
+.chat-message {
+  position:relative;
+  max-width:72%;
+  padding:7px 10px;
+  border-radius:16px;
+  color:white;
+  word-wrap:break-word;
+  font-size:13.5px;
+  line-height:1.4;
+  cursor:pointer;
+}
+
+.chat-message.mine {
+  align-self:flex-end;
+  border-bottom-right-radius:3px;
+  background:#1d4ed8;
+}
+
+.chat-message.other {
+  align-self:flex-start;
+  border-bottom-left-radius:3px;
+  background:#1e2736;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.chat-message.status {
+  align-self:center;
+  max-width:90%;
+  padding:3px 12px;
+  font-size:11px;
+  color:var(--muted);
+  background:rgba(255,255,255,.05);
+  border-radius:20px;
+  cursor:default;
+}
+
+.chat-sender {
+  font-size:10.5px;
+  font-weight:bold;
+  margin-bottom:2px;
+  opacity:0.75;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.edited-tag {
+  font-size:9.5px;
+  font-style:italic;
+  opacity:0.6;
+  margin-left:5px;
+}
+
+.reply-quote {
+  background:rgba(0,0,0,.28);
+  border-left:3px solid rgba(255,255,255,.5);
+  padding:3px 7px;
+  border-radius:5px;
+  font-size:11.5px;
+  margin-bottom:5px;
+  cursor:pointer;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.msg-actions {
+  display:none;
+  gap:6px;
+  margin-top:5px;
+  justify-content:flex-end;
+  opacity:0.9;
+  border-top:1px solid rgba(255,255,255,.12);
+  padding-top:4px;
+}
+
+.chat-message.actions-open .msg-actions {
+  display:flex;
+}
+
+.msg-act-btn {
+  background:rgba(0,0,0,.2);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:7px;
+  color:#fff;
+  font-size:10.5px;
+  cursor:pointer;
+  padding:2px 6px;
+  width:auto;
+  margin:0;
+  box-shadow:none;
+}
+
+.msg-act-btn:hover {
+  background:rgba(255,255,255,.25);
+  transform:none;
+  filter:none;
+}
+
+.reactions-bar {
+  display:flex;
+  flex-wrap:wrap;
+  gap:3px;
+  margin-top:3px;
+}
+
+.reaction-badge {
+  background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:10px;
+  padding:1px 5px;
+  font-size:10.5px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+
+.reaction-badge.user-reacted {
+  border-color:#fff;
+  background:rgba(255,255,255,.18);
+}
+
+.emoji-picker-popover {
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:5px;
+  background:#161b27;
+  border:1px solid var(--border);
+  padding:8px;
+  border-radius:14px;
+  position:absolute;
+  top:-138px;
+  z-index:10;
+  box-shadow:0 8px 24px rgba(0,0,0,.7);
+  max-height:128px;
+  overflow-y:auto;
+  width:205px;
+}
+
+.chat-message.mine .emoji-picker-popover { right:0; }
+.chat-message.other .emoji-picker-popover { left:0; }
+
+.emoji-btn {
+  cursor:pointer;
+  font-size:17px;
+  text-align:center;
+  transition:transform .1s;
+}
+
+.emoji-btn:hover { transform:scale(1.3); }
+
+/* ── GIF / Emoji Panel ── */
+.chat-picker-panel {
+  flex-shrink:0;
+  background:#161b27;
+  border-top:1px solid rgba(255,255,255,.12);
+  display:flex;
+  flex-direction:column;
+  height:280px;
+  overflow:hidden;
+  animation:slideUpPanel .2s ease;
+}
+
+@keyframes slideUpPanel {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.picker-tabs {
+  display:flex;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  flex-shrink:0;
+}
+
+.picker-tab {
+  flex:1;
+  padding:10px;
+  font-size:13px;
+  font-weight:700;
+  color:#9aa8c7;
+  cursor:pointer;
+  text-align:center;
+  border-bottom:3px solid transparent;
+  transition:.15s;
+}
+
+.picker-tab.active {
+  color:#3295ff;
+  border-bottom-color:#3295ff;
+}
+
+.picker-tab-content {
+  display:none;
+  flex:1;
+  min-height:0;
+  overflow:hidden;
+}
+
+/* Emoji tab: wrap grid */
+.picker-tab-content.active#content-emoji {
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  align-content:flex-start;
+  overflow-y:auto;
+  padding:8px;
+}
+
+/* GIF tab: column layout so search bar + grid stack without overlap */
+.picker-tab-content.active#content-gif {
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* Emoji grid in panel */
+.panel-emoji-btn {
+  font-size:22px;
+  cursor:pointer;
+  padding:4px;
+  border-radius:8px;
+  transition:transform .1s, background .1s;
+  line-height:1;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.panel-emoji-btn:hover {
+  transform:scale(1.25);
+  background:rgba(255,255,255,.1);
+}
+
+/* GIF search bar */
+.gif-search-bar {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+
+.gif-search-input {
+  flex:1;
+  padding:6px 10px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.15);
+  background:#0d1117;
+  color:#fff;
+  font-size:13px;
+  outline:none;
+}
+
+.gif-search-input:focus {
+  border-color:#3295ff;
+}
+
+.gif-grid {
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  grid-auto-rows:100px;
+  gap:4px;
+  padding:6px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  flex:1;
+  min-height:0;
+  -webkit-overflow-scrolling:touch;
+  align-content:start;
+}
+
+.gif-item {
+  border-radius:8px;
+  overflow:hidden;
+  cursor:pointer;
+  width:100%;
+  height:100px;
+  background:#0d1117;
+  position:relative;
+  display:block;
+}
+
+.gif-item img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  transition:opacity .2s;
+}
+
+.gif-item:hover img { opacity:0.8; }
+
+.gif-loading {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:80px;
+  width:100%;
+  color:#9aa8c7;
+  font-size:13px;
+  grid-column:1/-1;
+}
+
+.gif-attribution {
+  text-align:center;
+  font-size:10px;
+  color:#555e72;
+  padding:4px;
+  flex-shrink:0;
+}
+
+/* GIF message bubble */
+.gif-msg-img {
+  width:100%;
+  max-width:200px;
+  border-radius:10px;
+  display:block;
+  cursor:pointer;
+}
+
+/* ── Input bar — WhatsApp style ── */
+.chat-input-wrapper {
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#161b27;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+
+.reply-preview-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:5px 14px;
+  background:rgba(0,0,0,.3);
+  font-size:12px;
+  color:var(--muted);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.reply-preview-bar span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:85%;
+}
+
+.cancel-reply-btn {
+  cursor:pointer;
+  font-weight:bold;
+  color:#ff3eaa;
+  margin-left:8px;
+}
+
+.chat-input-area {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+}
+
+/* Emoji open button on left */
+.chat-emoji-open-btn {
+  flex-shrink:0;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:none;
+  border:none;
+  box-shadow:none;
+  font-size:22px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  margin:0;
+  color:#9aa8c7;
+  transition:transform .15s;
+}
+.chat-emoji-open-btn:hover { transform:scale(1.15); background:none; box-shadow:none; }
+
+
+/* Right side buttons */
+.chat-right-btns {
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.chat-icon-btn {
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:none;
+  border:none;
+  box-shadow:none;
+  font-size:20px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  margin:0;
+  color:#9aa8c7;
+  transition:transform .15s;
+}
+.chat-icon-btn:hover { transform:scale(1.15); background:none; box-shadow:none; }
+
+/* Send button — circle blue */
+.chat-send-btn {
+  width:38px !important;
+  height:38px !important;
+  border-radius:50% !important;
+  background:linear-gradient(135deg,#3295ff,#1767c7) !important;
+  border:none !important;
+  box-shadow:0 2px 8px rgba(50,149,255,.4) !important;
+  font-size:16px !important;
+  cursor:pointer;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  padding:0 !important;
+  margin:0 !important;
+  flex-shrink:0;
+  transition:transform .15s, opacity .15s !important;
+}
+.chat-send-btn:hover { transform:scale(1.1) !important; opacity:1 !important; }
+
+/* ── Online Users Popup ── */
+.online-popup {
+  position:absolute;
+  top:60px;
+  left:14px;
+  z-index:50;
+  background:#161b27;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+  min-width:190px;
+  max-width:240px;
+  overflow:hidden;
+  animation:popIn .18s ease;
+}
+
+@keyframes popIn {
+  from { opacity:0; transform:translateY(-8px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.online-popup-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px 8px;
+  font-size:12px;
+  font-weight:600;
+  color:#9aa8c7;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.online-popup-close {
+  cursor:pointer;
+  font-size:15px;
+  color:#ff6b6b;
+  line-height:1;
+  padding:0 2px;
+}
+
+.online-popup-list {
+  padding:6px 0;
+  max-height:200px;
+  overflow-y:auto;
+}
+
+.online-user-row {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 14px;
+  font-size:13px;
+  color:#e2e8f0;
+}
+
+.online-user-row:last-child {
+  border-bottom:none;
+}
+
+.online-dot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#22c55e;
+  flex-shrink:0;
+  box-shadow:0 0 5px #22c55e;
+}
+
+.online-empty {
+  padding:12px 14px;
+  font-size:12px;
+  color:#555e72;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login-page" class="card">
+  <h2>Welcome Back</h2>
+  <p style="margin-bottom:14px;">Enter your player ID to continue</p>
+  <div id="user-id" class="fake-input" contenteditable="true" data-placeholder="Enter Your ID" spellcheck="false"></div>
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<div id="main-menu" class="card hidden">
+  <h2 id="welcome-text">Welcome</h2>
+  <button onclick="showPage('game-mode-page')">Play Game</button>
+  <button onclick="showPage('settings-page')">Settings</button>
+  <button onclick="showPage('leaderboard-page')">Leaderboard</button>
+  <button onclick="quit()" style="color:white; background:linear-gradient(135deg,#ff7798,#db315b); box-shadow:0 6px 0 #8d1d3d;">Quit</button>
+</div>
+
+<div id="game-mode-page" class="card hidden">
+  <h2>Select Game Mode</h2>
+  <button onclick="startComputerGame()">Play Computer</button>
+  <button onclick="startOnlineSearch()" style="background:linear-gradient(135deg,#b77cff,#8032ff); box-shadow:0 6px 0 #4f1d9e; color:white;">Play Online</button>
+  <button class="btn-back" onclick="showPage('main-menu')" style="margin-top:12px;">Back to Menu</button>
+</div>
+
+<div id="online-search-page" class="card hidden">
+  <h2>Searching Opponent</h2>
+  <div class="spinner"></div>
+  <p>searching online user for play game...</p>
+  <button class="btn-back" onclick="cancelOnlineSearch()" style="margin-top:20px;">Cancel Search</button>
+</div>
+
+<div id="settings-page" class="card hidden">
+  <h2>Settings</h2>
+  <div class="setting-item toggle-container">
+    <span>Sound Effects</span>
+    <label class="switch">
+      <input type="checkbox" id="sound-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="setting-item">
+    <label>Select Your Color:</label>
+    <div class="color-options">
+      <div class="color-btn" style="background:#3295ff" onclick="changeTheme('#3295ff','#080b18', this)"></div>
+      <div class="color-btn" style="background:#a6e3a1" onclick="changeTheme('#a6e3a1','#111b13', this)"></div>
+      <div class="color-btn" style="background:#f38ba8" onclick="changeTheme('#f38ba8','#1f1315', this)"></div>
+      <div class="color-btn" style="background:#fab387" onclick="changeTheme('#fab387','#241a15', this)"></div>
+      <div class="color-btn" style="background:#cba6f7" onclick="changeTheme('#cba6f7','#1b1324', this)"></div>
+    </div>
+  </div>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<div id="leaderboard-page" class="card hidden">
+  <h2>Leaderboard</h2>
+  <div class="alert-info">Enter valid coupon code to unlock secret features.</div>
+  <p style="margin-bottom:8px;">Enter coupon code:</p>
+  <div id="coupon-code" class="fake-input" contenteditable="true" data-placeholder="Enter Coupon Code" spellcheck="false"></div>
+  <button onclick="submitCoupon()">Submit</button>
+  <button class="btn-back" onclick="showPage('main-menu')">Back to Menu</button>
+</div>
+
+<div id="chat-page" class="chat-container hidden">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-avatar">💬</div>
+      <div class="chat-header-info">
+        <span class="chat-header-name">Secret Live Chat</span>
+        <span class="chat-header-sub" id="online-status-btn" onclick="toggleOnlinePopup()" style="cursor:pointer;user-select:none;">● Online</span>
+      </div>
+    </div>
+    <div class="chat-header-actions">
+      <button id="clear-chat-btn" onclick="clearAllChats()" style="width:auto;margin:0;padding:5px 10px;font-size:11px;background:rgba(255,60,60,.15);border:1px solid rgba(255,80,80,.3);color:#ff6b6b;border-radius:16px;">🗑</button>
+      <button id="chat-play-btn" onclick="showPage('game-mode-page')" style="border-radius:16px;">🎮 Play</button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="chat-messages" class="chat-messages"></div>
+
+  <!-- Emoji / GIF Picker Panel (inside chat-container, above input) -->
+  <div id="chat-picker-panel" class="chat-picker-panel hidden">
+    <div class="picker-tabs">
+      <div class="picker-tab active" id="tab-emoji" onclick="switchPickerTab('emoji')">😊 Emoji</div>
+      <div class="picker-tab" id="tab-gif" onclick="switchPickerTab('gif')">🎞 GIF</div>
+    </div>
+    <!-- Emoji Tab -->
+    <div class="picker-tab-content active" id="content-emoji"></div>
+    <!-- GIF Tab -->
+    <div class="picker-tab-content" id="content-gif">
+      <div class="gif-search-bar">
+        <input class="gif-search-input" id="gif-search-input" type="text" placeholder="GIFs search karo..." />
+        <button class="chat-icon-btn" style="width:32px;height:32px;font-size:16px;flex-shrink:0;" onclick="searchGifs()">🔍</button>
+      </div>
+      <div class="gif-grid" id="gif-grid">
+        <div class="gif-loading">Trending GIFs load ho rahe hain...</div>
+      </div>
+      <div class="gif-attribution">Powered by GIPHY</div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="chat-input-wrapper">
+    <div id="reply-preview-bar" class="reply-preview-bar hidden">
+      <span id="reply-preview-text">Replying to...</span>
+      <span class="cancel-reply-btn" onclick="cancelReply()">✕</span>
+    </div>
+    <div id="chat-form" class="chat-input-area">
+      <button class="chat-emoji-open-btn" type="button" title="Emoji / GIF" onclick="togglePickerPanel()">😊</button>
+      <div id="chat-input" class="fake-input-chat" contenteditable="true" data-placeholder="Type a message..." spellcheck="false"></div>
+      <div class="chat-right-btns">
+        <button class="chat-icon-btn" type="button" title="Mic" onclick="return false;">🎤</button>
+        <button class="chat-send-btn" type="button" id="chat-send-btn" title="Send">➤</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="game-page" class="game-container hidden">
+  <div id="countdown-overlay" class="countdown-overlay hidden">
+    <div id="countdown-text" class="countdown-num">3</div>
+  </div>
+
+  <div class="game-toolbar">
+    <button class="icon-btn" id="restart-icon" title="Restart Game">↻</button>
+    <button class="icon-btn" id="pause-icon" title="Pause Game">⏸</button>
+    <button class="icon-btn" id="settings-icon" title="Settings">⚙</button>
+  </div>
+
+  <h1>Dots & Boxes</h1>
+
+  <div class="setup-panel">
+    <label for="grid-select">Grid Size</label>
+    <select id="grid-select">
+      <option value="3">Small — 3 × 3</option>
+      <option value="4" selected>Medium — 4 × 4</option>
+      <option value="5">Large — 5 × 5</option>
+    </select>
+  </div>
+
+  <div class="scoreboard">
+    <div id="p1-card" class="score-card active-p1">
+      <div class="player-name p1-text" id="player-display-name">You</div>
+      <div id="p1-score" class="score-val">0</div>
+    </div>
+    <div id="ai-card" class="score-card">
+      <div class="player-name ai-text" id="opponent-display-name">CPU</div>
+      <div id="ai-score" class="score-val">0</div>
+    </div>
+  </div>
+
+  <div id="board" class="board grid-4"></div>
+
+  <div class="controls">
+    <button class="btn-back" onclick="leaveGame()">Back to Menu</button>
+  </div>
+</div>
+
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="winner-title">Game Over</h2>
+    <p id="winner-msg"></p>
+    <button id="modal-reset-btn">Play Again</button>
+  </div>
+</div>
+
+<script>
+function setDynamicViewportHeight() {
+  const vv = window.visualViewport;
+  const vh = vv ? vv.height : window.innerHeight;
+  const offsetTop = vv ? vv.offsetTop : 0;
+
+  document.body.style.height = `${vh}px`;
+  document.body.style.top = `-${offsetTop}px`;
+
+  // Resize chat wrapper height so input stays above keyboard
+  const chatPage = document.getElementById("chat-page");
+  if (chatPage && !chatPage.classList.contains("hidden")) {
+    chatPage.style.height = `${vh}px`;
+    const msgs = document.getElementById("chat-messages");
+    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+  }
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", setDynamicViewportHeight);
+  window.visualViewport.addEventListener("scroll", setDynamicViewportHeight);
+} else {
+  window.addEventListener("resize", setDynamicViewportHeight);
+}
+setDynamicViewportHeight();
+
+window.addEventListener("pagehide", removePresence);
+window.addEventListener("beforeunload", removePresence);
+
+// --- APPWRITE INITIALIZATION ---
+const { Client, Databases, ID, Query } = Appwrite;
+
+const appwriteClient = new Client();
+appwriteClient
+    .setEndpoint('https://fra.cloud.appwrite.io/v1')
+    .setProject('6a98502b0023f61a6477');
+
+const databases = new Databases(appwriteClient);
+const DATABASE_ID = '6a9853c300262f68c1fd';
+const COLLECTION_MESSAGES = 'messages';
+const COLLECTION_GAMES = 'games';
+const COLLECTION_PRESENCE = 'presence'; // Appwrite collection for online tracking
+
+// ── ONLINE PRESENCE SYSTEM ──────────────────────────────────────────────────
+let presenceDocId = null;
+let presenceInterval = null;
+let onlinePopupVisible = false;
+
+async function registerPresence() {
+  if (!loggedInUser) return;
+  try {
+    // Try to update existing doc first
+    if (presenceDocId) {
+      await databases.updateDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId, {
+        user: loggedInUser,
+        lastSeen: new Date().toISOString()
+      });
+      return;
+    }
+    // Check if doc for this user already exists
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_PRESENCE, [
+      Query.equal('user', loggedInUser), Query.limit(1)
+    ]);
+    if (res.documents.length > 0) {
+      presenceDocId = res.documents[0].$id;
+      await databases.updateDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId, {
+        lastSeen: new Date().toISOString()
+      });
+    } else {
+      const doc = await databases.createDocument(
+        DATABASE_ID, COLLECTION_PRESENCE, ID.unique(),
+        { user: loggedInUser, lastSeen: new Date().toISOString() }
+      );
+      presenceDocId = doc.$id;
+    }
+  } catch (e) { console.warn('Presence write failed:', e); }
+}
+
+async function removePresence() {
+  if (presenceDocId) {
+    try { await databases.deleteDocument(DATABASE_ID, COLLECTION_PRESENCE, presenceDocId); }
+    catch(e) {}
+    presenceDocId = null;
+  }
+  if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
+}
+
+function startPresenceHeartbeat() {
+  registerPresence();
+  if (presenceInterval) clearInterval(presenceInterval);
+  presenceInterval = setInterval(registerPresence, 20000); // every 20s
+}
+
+async function fetchOnlineUsers() {
+  try {
+    // Consider online = lastSeen within last 40 seconds
+    const cutoff = new Date(Date.now() - 40000).toISOString();
+    const res = await databases.listDocuments(DATABASE_ID, COLLECTION_PRESENCE, [
+      Query.greaterThan('lastSeen', cutoff), Query.limit(20)
+    ]);
+    return res.documents.map(d => d.user);
+  } catch(e) { return [loggedInUser]; }
+}
+
+async function toggleOnlinePopup() {
+  const existing = document.getElementById('online-popup-box');
+  if (existing) { existing.remove(); onlinePopupVisible = false; return; }
+  onlinePopupVisible = true;
+
+  const users = await fetchOnlineUsers();
+  const chatPage = document.getElementById('chat-page');
+
+  const box = document.createElement('div');
+  box.className = 'online-popup';
+  box.id = 'online-popup-box';
+
+  const count = users.length;
+  box.innerHTML = `
+    <div class="online-popup-header">
+      <span>🟢 Online (${count})</span>
+      <span class="online-popup-close" onclick="document.getElementById('online-popup-box')?.remove()">❌</span>
+    </div>
+    <div class="online-popup-list">
+      ${count === 0
+        ? '<div class="online-empty">Koi online nahi</div>'
+        : users.map(u => `
+            <div class="online-user-row">
+              <span class="online-dot"></span>
+              <span>${u}</span>
+            </div>`).join('')
+      }
+    </div>`;
+
+  chatPage.appendChild(box);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!box.contains(e.target) && e.target.id !== 'online-status-btn') {
+        box.remove();
+        onlinePopupVisible = false;
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 50);
+}
+
+function updateOnlineCount(count) {
+  const btn = document.getElementById('online-status-btn');
+  if (btn) btn.textContent = `● Online (${count})`;
+}
+
+const PRESET_COLORS = ['#3295ff', '#a6e3a1', '#f38ba8', '#fab387', '#cba6f7'];
+
+// Expanded Emojis Array
+const ALL_EMOJIS = [
+  "❤️", "👍", "😂", "😮", "🔥", "🎉", "😊", "😍", "🤣", "😭", 
+  "👏", "🙏", "💯", "😎", "🥳", "🤔", "💩", "💔", "🙈", "🚀", 
+  "✨", "⚡", "😴", "🤩", "😜", "😇", "💪", "🤡", "🤬", "🤮"
+];
+
+let chatUnsubscribe = null;
+let gameUnsubscribe = null;
+let loggedInUser = "You";
+let gameMode = "computer"; 
+let currentGameDoc = null;
+let myRole = "p1"; 
+let isPaused = false;
+
+let p1Name = "You";
+let p2Name = "CPU";
+let p1Color = "#3295ff";
+let p2Color = "#ff3eaa";
+
+const P1 = "p1";
+const AI = "ai";
+
+let gridSize = 4;
+let startingPlayer = P1;
+let currentPlayer = P1;
+let p1Score = 0;
+let aiScore = 0;
+let hLines = [];
+let vLines = [];
+let boxes = [];
+
+// Advanced Chat State Variables
+let activeReplyTo = null; // { id, sender, text }
+let editingMessageId = null;
+let activePickerMsgId = null;
+
+const gamePage = document.getElementById("game-page");
+const boardEl = document.getElementById("board");
+const p1ScoreEl = document.getElementById("p1-score");
+const aiScoreEl = document.getElementById("ai-score");
+const p1Card = document.getElementById("p1-card");
+const aiCard = document.getElementById("ai-card");
+const gridSelect = document.getElementById("grid-select");
+const modal = document.getElementById("game-over-modal");
+const winnerTitle = document.getElementById("winner-title");
+const winnerMsg = document.getElementById("winner-msg");
+const pauseIcon = document.getElementById("pause-icon");
+const restartIcon = document.getElementById("restart-icon");
+const settingsIcon = document.getElementById("settings-icon");
+
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-input");
+const replyPreviewBar = document.getElementById("reply-preview-bar");
+const replyPreviewText = document.getElementById("reply-preview-text");
+
+// ── ANDROID SCROLL FIX ──────────────────────────────────────────────────────
+// Android Chrome bug: when user swipes on chat-messages, the whole page
+// scrolls up instead of just the message list. Fix: intercept touch events
+// on chat-messages and stop them from reaching body/html.
+(function fixAndroidChatScroll() {
+  let startY = 0;
+
+  chatMessages.addEventListener("touchstart", function(e) {
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  chatMessages.addEventListener("touchmove", function(e) {
+    const y = e.touches[0].clientY;
+    const scrollTop = chatMessages.scrollTop;
+    const maxScroll = chatMessages.scrollHeight - chatMessages.clientHeight;
+    const goingUp = y < startY;   // finger moving up = scroll down
+    const goingDown = y > startY; // finger moving down = scroll up
+
+    // Only block body scroll when the list itself can still scroll
+    if ((goingUp && scrollTop < maxScroll) || (goingDown && scrollTop > 0)) {
+      e.stopPropagation();
+    } else {
+      // At the boundary — prevent the body from bouncing
+      e.preventDefault();
+    }
+  }, { passive: false });
+})();
+
+function login() {
+  const userId = document.getElementById("user-id").innerText.trim();
+  if (!userId) {
+    alert("Pehle apni ID enter karein!");
+    return;
+  }
+  loggedInUser = userId;
+  p1Name = userId;
+  document.getElementById("welcome-text").textContent = "Welcome, " + userId;
+  showPage("main-menu");
+}
+
+function quit() {
+  document.getElementById("user-id").innerText = "";
+  loggedInUser = "You";
+  if (chatUnsubscribe) chatUnsubscribe();
+  cancelOnlineSearch();
+  removePresence();
+  showPage("login-page");
+}
+
+function showPage(pageId) {
+  const pages = [
+    "login-page", "main-menu", "game-mode-page", "online-search-page",
+    "settings-page", "leaderboard-page", "chat-page", "game-page"
+  ];
+  pages.forEach(id => document.getElementById(id).classList.add("hidden"));
+  document.getElementById(pageId).classList.remove("hidden");
+}
+
+function changeTheme(accentColor, backgroundColor, btnEl) {
+  p1Color = accentColor;
+  document.documentElement.style.setProperty("--accent", accentColor);
+  document.documentElement.style.setProperty("--bg", backgroundColor);
+  
+  if(btnEl) {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+  }
+}
+
+/* ==================== GAME MODE LOGIC ==================== */
+
+function startComputerGame() {
+  gameMode = "computer";
+  myRole = P1;
+  p1Name = loggedInUser;
+  p2Name = "CPU";
+  p2Color = "#ff3eaa";
+
+  document.documentElement.style.setProperty("--accent", p1Color);
+  document.documentElement.style.setProperty("--p2-color", p2Color);
+
+  document.getElementById("player-display-name").textContent = p1Name;
+  document.getElementById("opponent-display-name").textContent = p2Name;
+  gridSelect.disabled = false;
+  showPage("game-page");
+  initGame(true);
+}
+
+async function startOnlineSearch() {
+  gameMode = "online";
+  showPage("online-search-page");
+
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_GAMES,
+      [Query.equal('status', 'waiting'), Query.limit(1)]
+    );
+
+    if (response.documents.length > 0) {
+      const matchDoc = response.documents[0];
+      if (matchDoc.player1 === loggedInUser) return;
+
+      myRole = AI;
+      let chosenP2Color = p1Color;
+
+      if (chosenP2Color.toLowerCase() === (matchDoc.p1Color || "").toLowerCase()) {
+        chosenP2Color = PRESET_COLORS.find(c => c.toLowerCase() !== matchDoc.p1Color.toLowerCase()) || '#ff3eaa';
+      }
+
+      currentGameDoc = await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTION_GAMES,
+        matchDoc.$id,
+        {
+          player2: loggedInUser,
+          p2Color: chosenP2Color,
+          status: 'playing'
+        }
+      );
+
+      listenToGameUpdates(matchDoc.$id);
+      startCountdownAndPlay(currentGameDoc);
+    } else {
+      myRole = P1;
+      currentGameDoc = await databases.createDocument(
+        DATABASE_ID,
+        COLLECTION_GAMES,
+        ID.unique(),
+        {
+          player1: loggedInUser,
+          p1Color: p1Color,
+          player2: "",
+          p2Color: "",
+          status: "waiting",
+          turn: P1,
+          lastMove: "",
+          isPaused: false,
+          isRestarted: false
+        }
+      );
+
+      listenToGameUpdates(currentGameDoc.$id);
+    }
+  } catch (err) {
+    console.error("Matchmaking error:", err);
+    alert("Matchmaking error. Check Appwrite connection.");
+    showPage("game-mode-page");
+  }
+}
+
+async function cancelOnlineSearch() {
+  if (currentGameDoc && currentGameDoc.status === 'waiting') {
+    try {
+      await databases.deleteDocument(DATABASE_ID, COLLECTION_GAMES, currentGameDoc.$id);
+    } catch(e) {}
+  }
+  if (gameUnsubscribe) gameUnsubscribe();
+  currentGameDoc = null;
+  showPage("game-mode-page");
+}
+
+function listenToGameUpdates(gameId) {
+  if (gameUnsubscribe) gameUnsubscribe();
+
+  gameUnsubscribe = appwriteClient.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_GAMES}.documents.${gameId}`,
+    response => {
+      const doc = response.payload;
+      
+      if (currentGameDoc && currentGameDoc.status === 'waiting' && doc.status === 'playing') {
+        currentGameDoc = doc;
+        startCountdownAndPlay(doc);
+      }
+
+      if (doc.status === 'playing') {
+        if (doc.isPaused !== isPaused) {
+          isPaused = doc.isPaused;
+          togglePauseUI(isPaused);
+        }
+
+        if (doc.isRestarted) {
+          initGame(true);
+          if (myRole === P1) {
+            databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, gameId, { isRestarted: false });
+          }
+        }
+
+        if (doc.lastMove) {
+          const moveData = JSON.parse(doc.lastMove);
+          if (moveData.sender !== myRole) {
+            executeMoveLocally(moveData.type, moveData.r, moveData.c, moveData.sender);
+          }
+        }
+      }
+    }
+  );
+}
+
+function startCountdownAndPlay(doc) {
+  p1Name = doc.player1;
+  p2Name = doc.player2 || "Player 2";
+  p1Color = doc.p1Color || "#3295ff";
+  p2Color = doc.p2Color || "#ff3eaa";
+
+  document.documentElement.style.setProperty("--accent", p1Color);
+  document.documentElement.style.setProperty("--p2-color", p2Color);
+
+  document.getElementById("player-display-name").textContent = p1Name;
+  document.getElementById("opponent-display-name").textContent = p2Name;
+  gridSelect.disabled = true;
+
+  showPage("game-page");
+  initGame(true);
+
+  const overlay = document.getElementById("countdown-overlay");
+  const countText = document.getElementById("countdown-text");
+  overlay.classList.remove("hidden");
+
+  let count = 3;
+  countText.textContent = count;
+
+  const timer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countText.textContent = count;
+    } else if (count === 0) {
+      countText.textContent = "Ready Go!";
+    } else {
+      clearInterval(timer);
+      overlay.classList.add("hidden");
+    }
+  }, 900);
+}
+
+function leaveGame() {
+  if (gameUnsubscribe) gameUnsubscribe();
+  showPage("main-menu");
+}
+
+/* ==================== CORE GAME LOGIC ==================== */
+
+function initGame(fullReset = false) {
+  gridSize = parseInt(gridSelect.value);
+  p1Score = 0;
+  aiScore = 0;
+  p1ScoreEl.textContent = "0";
+  aiScoreEl.textContent = "0";
+  modal.style.display = "none";
+  isPaused = false;
+  togglePauseUI(false);
+
+  if (fullReset) {
+    startingPlayer = P1;
+  } else {
+    startingPlayer = startingPlayer === P1 ? AI : P1;
+  }
+
+  currentPlayer = startingPlayer;
+
+  hLines = Array.from({ length:gridSize + 1 }, () => Array(gridSize).fill(null));
+  vLines = Array.from({ length:gridSize }, () => Array(gridSize + 1).fill(null));
+  boxes = Array.from({ length:gridSize }, () => Array(gridSize).fill(null));
+
+  updateTurnUI();
+  renderBoard();
+
+  if (gameMode === "computer" && currentPlayer === AI) {
+    setTimeout(aiMove, 500);
+  }
+}
+
+function renderBoard() {
+  boardEl.innerHTML = "";
+  boardEl.className = "board grid-" + gridSize;
+
+  for (let r = 0; r <= gridSize; r++) {
+    const hRow = document.createElement("div");
+    hRow.className = "row";
+
+    for (let c = 0; c < gridSize; c++) {
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      hRow.appendChild(dot);
+
+      const line = document.createElement("div");
+      line.className = "h-line line";
+      line.dataset.type = "h";
+      line.dataset.r = r;
+      line.dataset.c = c;
+      line.addEventListener("click", handleLineClick);
+      hRow.appendChild(line);
+    }
+
+    const lastDot = document.createElement("div");
+    lastDot.className = "dot";
+    hRow.appendChild(lastDot);
+    boardEl.appendChild(hRow);
+
+    if (r < gridSize) {
+      const vRow = document.createElement("div");
+      vRow.className = "row";
+
+      for (let c = 0; c <= gridSize; c++) {
+        const line = document.createElement("div");
+        line.className = "v-line line";
+        line.dataset.type = "v";
+        line.dataset.r = r;
+        line.dataset.c = c;
+        line.addEventListener("click", handleLineClick);
+        vRow.appendChild(line);
+
+        if (c < gridSize) {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.id = `box-${r}-${c}`;
+          vRow.appendChild(box);
+        }
+      }
+      boardEl.appendChild(vRow);
+    }
+  }
+}
+
+async function handleLineClick(event) {
+  if (isPaused) return;
+  if (currentPlayer !== myRole) return;
+
+  const type = event.target.dataset.type;
+  const r = parseInt(event.target.dataset.r);
+  const c = parseInt(event.target.dataset.c);
+
+  if (gameMode === "online") {
+    if (executeMoveLocally(type, r, c, myRole)) {
+      try {
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTION_GAMES,
+          currentGameDoc.$id,
+          {
+            lastMove: JSON.stringify({ type, r, c, sender: myRole }),
+            turn: currentPlayer
+          }
+        );
+      } catch (err) {
+        console.error("Online move update failed", err);
+      }
+    }
+  } else {
+    if (executeMoveLocally(type, r, c, P1)) {
+      if (checkGameOver()) return;
+      if (currentPlayer === AI) {
+        setTimeout(aiMove, 400);
+      }
+    }
+  }
+}
+
+function executeMoveLocally(type, r, c, player) {
+  const lineArray = type === "h" ? hLines : vLines;
+  if (lineArray[r][c] !== null) return false;
+
+  lineArray[r][c] = player;
+  const selector = `.line[data-type="${type}"][data-r="${r}"][data-c="${c}"]`;
+  const lineElement = document.querySelector(selector);
+
+  if (lineElement) {
+    lineElement.classList.add("taken", player);
+  }
+
+  const completed = checkBoxes(type, r, c, player);
+
+  if (completed > 0) {
+    if (player === P1) p1Score += completed;
+    else aiScore += completed;
+    updateScores();
+  } else {
+    currentPlayer = currentPlayer === P1 ? AI : P1;
+    updateTurnUI();
+  }
+
+  checkGameOver();
+  return true;
+}
+
+function checkBoxes(type, r, c, player) {
+  let completed = 0;
+  getAffectedBoxes(type, r, c).forEach(({br, bc}) => {
+    if (boxes[br][bc] === null && getBoxEdgeCount(br, bc) === 4) {
+      boxes[br][bc] = player;
+      const boxElement = document.getElementById(`box-${br}-${bc}`);
+      boxElement.classList.add(`filled-${player}`);
+
+      const initial = (player === P1 ? p1Name : p2Name).charAt(0).toUpperCase();
+      boxElement.textContent = initial;
+      completed++;
+    }
+  });
+  return completed;
+}
+
+function getAffectedBoxes(type, r, c) {
+  const result = [];
+  if (type === "h") {
+    if (r > 0) result.push({br:r - 1, bc:c});
+    if (r < gridSize) result.push({br:r, bc:c});
+  } else {
+    if (c > 0) result.push({br:r, bc:c - 1});
+    if (c < gridSize) result.push({br:r, bc:c});
+  }
+  return result;
+}
+
+function getBoxEdgeCount(r, c) {
+  let count = 0;
+  if (hLines[r][c] !== null) count++;
+  if (hLines[r + 1][c] !== null) count++;
+  if (vLines[r][c] !== null) count++;
+  if (vLines[r][c + 1] !== null) count++;
+  return count;
+}
+
+function aiMove() {
+  if (isPaused || currentPlayer !== AI) return;
+  const availableMoves = getAllAvailableMoves();
+  if (!availableMoves.length) return;
+
+  for (const move of availableMoves) {
+    if (createsBox(move)) {
+      executeMoveLocally(move.type, move.r, move.c, AI);
+      if (!checkGameOver() && currentPlayer === AI) {
+        setTimeout(aiMove, 400);
+      }
+      return;
+    }
+  }
+
+  const safeMoves = availableMoves.filter(move => !givesAwayBox(move));
+  const choice = safeMoves.length
+    ? safeMoves[Math.floor(Math.random() * safeMoves.length)]
+    : availableMoves[Math.floor(Math.random() * availableMoves.length)];
+
+  executeMoveLocally(choice.type, choice.r, choice.c, AI);
+
+  if (!checkGameOver() && currentPlayer === AI) {
+    setTimeout(aiMove, 400);
+  }
+}
+
+function getAllAvailableMoves() {
+  const moves = [];
+  for (let r = 0; r <= gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (hLines[r][c] === null) moves.push({type:"h", r, c});
+    }
+  }
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c <= gridSize; c++) {
+      if (vLines[r][c] === null) moves.push({type:"v", r, c});
+    }
+  }
+  return moves;
+}
+
+function createsBox(move) {
+  return getAffectedBoxes(move.type, move.r, move.c).some(({br, bc}) => getBoxEdgeCount(br, bc) === 3);
+}
+
+function givesAwayBox(move) {
+  return getAffectedBoxes(move.type, move.r, move.c).some(({br, bc}) => getBoxEdgeCount(br, bc) === 2);
+}
+
+function updateScores() {
+  p1ScoreEl.textContent = p1Score;
+  aiScoreEl.textContent = aiScore;
+}
+
+function updateTurnUI() {
+  p1Card.classList.toggle("active-p1", currentPlayer === P1);
+  aiCard.classList.toggle("active-ai", currentPlayer === AI);
+}
+
+function checkGameOver() {
+  if (p1Score + aiScore !== gridSize * gridSize) return false;
+
+  if (p1Score > aiScore) {
+    winnerTitle.textContent = `${p1Name} Won!`;
+    winnerMsg.textContent = `Score: ${p1Score} - ${aiScore}.`;
+  } else if (aiScore > p1Score) {
+    winnerTitle.textContent = `${p2Name} Won!`;
+    winnerMsg.textContent = `Score: ${aiScore} - ${p1Score}.`;
+  } else {
+    winnerTitle.textContent = "It's a Tie!";
+    winnerMsg.textContent = `Score: ${p1Score} - ${aiScore}.`;
+  }
+
+  modal.style.display = "flex";
+  return true;
+}
+
+async function togglePause() {
+  isPaused = !isPaused;
+  togglePauseUI(isPaused);
+
+  if (gameMode === "online" && currentGameDoc) {
+    try {
+      await databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, currentGameDoc.$id, {
+        isPaused: isPaused
+      });
+    } catch(e) {}
+  }
+}
+
+function togglePauseUI(paused) {
+  pauseIcon.textContent = paused ? "▶" : "⏸";
+  boardEl.style.opacity = paused ? "0.4" : "1";
+  boardEl.style.pointerEvents = paused ? "none" : "auto";
+}
+
+async function handleRestart() {
+  if (confirm("Restart game?")) {
+    if (gameMode === "online" && currentGameDoc) {
+      try {
+        await databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, currentGameDoc.$id, {
+          isRestarted: true
+        });
+      } catch(e) {}
+    } else {
+      initGame(true);
+    }
+  }
+}
+
+/* ==================== SECRET CHAT LOGIC (UPDATED) ==================== */
+function submitCoupon() {
+  const couponInput = document.getElementById("coupon-code");
+  if (couponInput.innerText.trim() === "Gorilla") {
+    couponInput.innerText = "";
+    openSecretChat();
+  } else {
+    alert("Wrong coupon code!");
+  }
+}
+
+async function openSecretChat() {
+  showPage("chat-page");
+  chatMessages.innerHTML = "";
+  addChatMessageDoc({ sender: "", text: "Connecting To Chat Room...", $id: "status-msg" }, "status");
+  await loadPreviousMessages();
+  subscribeToRealtimeChat();
+  startPresenceHeartbeat();
+  // Show live online count after short delay
+  setTimeout(async () => {
+    const users = await fetchOnlineUsers();
+    updateOnlineCount(users.length);
+  }, 1000);
+}
+
+async function loadPreviousMessages() {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      [Query.orderDesc('createdAt'), Query.limit(30)]
+    );
+    chatMessages.innerHTML = "";
+    
+    const messages = response.documents.reverse();
+    messages.forEach(doc => {
+      const type = doc.sender === loggedInUser ? "mine" : "other";
+      addChatMessageDoc(doc, type);
+    });
+    trimChatToMax30();
+  } catch (error) {
+    console.error("Fetch chat error:", error);
+    chatMessages.innerHTML = "";
+    addChatMessageDoc({ sender: "", text: "Failed to load messages.", $id: "error-msg" }, "status");
+  }
+}
+
+function subscribeToRealtimeChat() {
+  if (chatUnsubscribe) chatUnsubscribe();
+  chatUnsubscribe = appwriteClient.subscribe(
+    `databases.${DATABASE_ID}.collections.${COLLECTION_MESSAGES}.documents`,
+    response => {
+      const events = response.events;
+      const doc = response.payload;
+
+      if (events.includes("databases.*.collections.*.documents.*.create")) {
+        if (doc.sender !== loggedInUser) {
+          addChatMessageDoc(doc, "other");
+          trimChatToMax30();
+        }
+      } else if (events.includes("databases.*.collections.*.documents.*.update")) {
+        updateChatMessageUI(doc);
+      } else if (events.includes("databases.*.collections.*.documents.*.delete")) {
+        const targetEl = document.getElementById(`msg-${doc.$id}`);
+        if (targetEl) targetEl.remove();
+      }
+    }
+  );
+}
+
+function addChatMessageDoc(doc, forceType = null) {
+  const type = forceType || (doc.sender === loggedInUser ? "mine" : "other");
+  const messageBox = document.createElement("div");
+  messageBox.className = "chat-message " + type;
+  messageBox.id = `msg-${doc.$id}`;
+  messageBox.dataset.doc = JSON.stringify(doc);
+
+  if (type === "status") {
+    messageBox.textContent = doc.text;
+    chatMessages.appendChild(messageBox);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return;
+  }
+
+  // Toggle Actions Bar on Message Click
+  messageBox.addEventListener("click", (e) => {
+    // Don't toggle if clicking on interactive internal elements
+    if (e.target.closest('.msg-act-btn') || e.target.closest('.emoji-picker-popover') || e.target.closest('.reaction-badge') || e.target.closest('.reply-quote')) {
+      return;
+    }
+    
+    // Close other opened messages
+    document.querySelectorAll('.chat-message.actions-open').forEach(el => {
+      if (el !== messageBox) el.classList.remove('actions-open');
+    });
+
+    messageBox.classList.toggle("actions-open");
+  });
+
+  // Header (Sender Name)
+  const senderHeader = document.createElement("div");
+  senderHeader.className = "chat-sender";
+  
+  const senderSpan = document.createElement("span");
+  senderSpan.textContent = doc.sender;
+  senderHeader.appendChild(senderSpan);
+
+  if (doc.isEdited) {
+    const editedSpan = document.createElement("span");
+    editedSpan.className = "edited-tag";
+    editedSpan.textContent = "(edited)";
+    senderHeader.appendChild(editedSpan);
+  }
+  messageBox.appendChild(senderHeader);
+
+  // Reply Quoted Section
+  if (doc.replyTo) {
+    try {
+      const replyData = typeof doc.replyTo === 'string' ? JSON.parse(doc.replyTo) : doc.replyTo;
+      const replyQuote = document.createElement("div");
+      replyQuote.className = "reply-quote";
+      replyQuote.innerHTML = `<strong>${replyData.sender}:</strong> ${replyData.text}`;
+      replyQuote.onclick = (e) => {
+        e.stopPropagation();
+        const targetMsg = document.getElementById(`msg-${replyData.id}`);
+        if (targetMsg) targetMsg.scrollIntoView({ behavior: 'smooth' });
+      };
+      messageBox.appendChild(replyQuote);
+    } catch(e) {}
+  }
+
+  // Text Body (or GIF)
+  const messageText = document.createElement("div");
+  messageText.className = "msg-body";
+  if (doc.text && doc.text.startsWith("[GIF]")) {
+    const gifUrl = doc.text.slice(5);
+    const gifImg = document.createElement("img");
+    gifImg.src = gifUrl;
+    gifImg.className = "gif-msg-img";
+    gifImg.alt = "GIF";
+    gifImg.loading = "lazy";
+    gifImg.onclick = (e) => e.stopPropagation();
+    messageText.appendChild(gifImg);
+  } else {
+    messageText.textContent = doc.text;
+  }
+  messageBox.appendChild(messageText);
+
+  // Reactions Display
+  const reactionsContainer = document.createElement("div");
+  reactionsContainer.className = "reactions-bar";
+  renderReactionsUI(reactionsContainer, doc);
+  messageBox.appendChild(reactionsContainer);
+
+  // Action Buttons Container
+  const actionsDiv = document.createElement("div");
+  actionsDiv.className = "msg-actions";
+
+  // Emoji Reaction Button - ONLY FOR RECEIVED MESSAGES
+  if (doc.sender !== loggedInUser) {
+    const reactBtn = document.createElement("button");
+    reactBtn.className = "msg-act-btn";
+    reactBtn.textContent = "😃 React";
+    reactBtn.onclick = (e) => { 
+      e.stopPropagation(); 
+      toggleEmojiPicker(doc.$id, messageBox); 
+    };
+    actionsDiv.appendChild(reactBtn);
+  }
+
+  // Reply Button (Available for all messages)
+  const replyBtn = document.createElement("button");
+  replyBtn.className = "msg-act-btn";
+  replyBtn.textContent = "Reply";
+  replyBtn.onclick = (e) => {
+    e.stopPropagation();
+    setReplyTo(doc.$id, doc.sender, doc.text);
+  };
+  actionsDiv.appendChild(replyBtn);
+
+  // Edit & Delete Buttons - ONLY FOR SENDER
+  if (doc.sender === loggedInUser) {
+    const editBtn = document.createElement("button");
+    editBtn.className = "msg-act-btn";
+    editBtn.textContent = "Edit";
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      startEditMessage(doc.$id, doc.text);
+    };
+    actionsDiv.appendChild(editBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "msg-act-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteChatMessage(doc.$id);
+    };
+    actionsDiv.appendChild(deleteBtn);
+  }
+
+  messageBox.appendChild(actionsDiv);
+
+  chatMessages.appendChild(messageBox);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function updateChatMessageUI(doc) {
+  const existingEl = document.getElementById(`msg-${doc.$id}`);
+  if (!existingEl) return;
+
+  existingEl.dataset.doc = JSON.stringify(doc);
+
+  // Update Body Text (or GIF)
+  const bodyEl = existingEl.querySelector(".msg-body");
+  if (bodyEl) {
+    if (doc.text && doc.text.startsWith("[GIF]")) {
+      // GIF messages don't need update
+    } else {
+      bodyEl.textContent = doc.text;
+    }
+  }
+
+  // Update Edited status
+  const senderHeader = existingEl.querySelector(".chat-sender");
+  if (senderHeader && doc.isEdited && !senderHeader.querySelector(".edited-tag")) {
+    const editedSpan = document.createElement("span");
+    editedSpan.className = "edited-tag";
+    editedSpan.textContent = "(edited)";
+    senderHeader.appendChild(editedSpan);
+  }
+
+  // Update Reactions
+  const reactionsContainer = existingEl.querySelector(".reactions-bar");
+  if (reactionsContainer) {
+    renderReactionsUI(reactionsContainer, doc);
+  }
+}
+
+function renderReactionsUI(container, doc) {
+  container.innerHTML = "";
+  if (!doc.reactions) return;
+
+  try {
+    const reactionsMap = typeof doc.reactions === 'string' ? JSON.parse(doc.reactions) : doc.reactions;
+    
+    // Group reactions by emoji
+    const emojiCounts = {};
+    const userReacted = {};
+
+    Object.entries(reactionsMap).forEach(([user, emoji]) => {
+      if (!emojiCounts[emoji]) emojiCounts[emoji] = 0;
+      emojiCounts[emoji]++;
+      if (user === loggedInUser) userReacted[emoji] = true;
+    });
+
+    Object.keys(emojiCounts).forEach(emoji => {
+      const badge = document.createElement("div");
+      badge.className = "reaction-badge " + (userReacted[emoji] ? "user-reacted" : "");
+      badge.innerHTML = `${emoji} <span>${emojiCounts[emoji]}</span>`;
+      
+      // Allow toggle/react click if it's not own message OR if user already reacted
+      if (doc.sender !== loggedInUser) {
+        badge.onclick = (e) => {
+          e.stopPropagation();
+          addReaction(doc.$id, emoji);
+        };
+      }
+      container.appendChild(badge);
+    });
+  } catch(e) {}
+}
+
+function toggleEmojiPicker(msgId, messageBox) {
+  const existingPicker = document.querySelector(".emoji-picker-popover");
+  if (existingPicker) existingPicker.remove();
+
+  if (activePickerMsgId === msgId) {
+    activePickerMsgId = null;
+    return;
+  }
+
+  activePickerMsgId = msgId;
+  const picker = document.createElement("div");
+  picker.className = "emoji-picker-popover";
+
+  ALL_EMOJIS.forEach(emoji => {
+    const btn = document.createElement("span");
+    btn.className = "emoji-btn";
+    btn.textContent = emoji;
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      addReaction(msgId, emoji);
+      picker.remove();
+      activePickerMsgId = null;
+    };
+    picker.appendChild(btn);
+  });
+
+  messageBox.appendChild(picker);
+}
+
+document.addEventListener("click", (e) => {
+  const isInsideMsg = e.target.closest(".chat-message");
+  const isActionBtn = e.target.closest(".msg-act-btn");
+  const isEmojiPicker = e.target.closest(".emoji-picker-popover");
+
+  // Close emoji picker on outside click
+  if (!isEmojiPicker && !isActionBtn) {
+    const picker = document.querySelector(".emoji-picker-popover");
+    if (picker) picker.remove();
+    activePickerMsgId = null;
+  }
+
+  // Close actions menu when clicking anywhere outside a message
+  if (!isInsideMsg) {
+    document.querySelectorAll(".chat-message.actions-open").forEach(el => {
+      el.classList.remove("actions-open");
+    });
+  }
+});
+
+async function addReaction(msgId, emoji) {
+  const targetEl = document.getElementById(`msg-${msgId}`);
+  if (!targetEl) return;
+
+  const doc = JSON.parse(targetEl.dataset.doc);
+
+  // Security Check: Users cannot react to their own messages
+  if (doc.sender === loggedInUser) {
+    return;
+  }
+
+  let reactionsMap = {};
+
+  if (doc.reactions) {
+    try {
+      reactionsMap = typeof doc.reactions === 'string' ? JSON.parse(doc.reactions) : doc.reactions;
+    } catch(e) {}
+  }
+
+  // Toggle reaction logic
+  if (reactionsMap[loggedInUser] === emoji) {
+    delete reactionsMap[loggedInUser];
+  } else {
+    reactionsMap[loggedInUser] = emoji;
+  }
+
+  try {
+    await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      msgId,
+      { reactions: JSON.stringify(reactionsMap) }
+    );
+  } catch (err) {
+    console.error("Reaction update failed", err);
+  }
+}
+
+function setReplyTo(msgId, sender, text) {
+  activeReplyTo = { id: msgId, sender, text };
+  editingMessageId = null;
+  replyPreviewText.textContent = `Replying to ${sender}: "${text}"`;
+  replyPreviewBar.classList.remove("hidden");
+  chatInput.focus();
+}
+
+function cancelReply() {
+  activeReplyTo = null;
+  editingMessageId = null;
+  replyPreviewBar.classList.add("hidden");
+  chatInput.innerText = "";
+}
+
+function startEditMessage(msgId, currentText) {
+  editingMessageId = msgId;
+  activeReplyTo = null;
+  replyPreviewText.textContent = `Editing Message: "${currentText}"`;
+  replyPreviewBar.classList.remove("hidden");
+  chatInput.innerText = currentText;
+  chatInput.focus();
+}
+
+async function deleteChatMessage(msgId) {
+  if (!confirm("Delete this message?")) return;
+  try {
+    await databases.deleteDocument(DATABASE_ID, COLLECTION_MESSAGES, msgId);
+    const targetEl = document.getElementById(`msg-${msgId}`);
+    if (targetEl) targetEl.remove();
+  } catch (err) {
+    alert("Could not delete message.");
+  }
+}
+
+async function clearAllChats() {
+  if (!confirm("Sari chats clear ho jayengi dono users ki — sure ho?")) return;
+
+  // 1. Clear UI immediately — instant response
+  const chatMsgsEl = document.getElementById("chat-messages");
+  chatMsgsEl.innerHTML = "";
+
+  try {
+    // 2. Fetch all messages and delete all at once (parallel)
+    let keepGoing = true;
+    while (keepGoing) {
+      const res = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_MESSAGES,
+        [Query.limit(100)]
+      );
+      if (res.documents.length === 0) break;
+
+      // Delete all fetched docs in parallel — much faster than one by one
+      await Promise.all(
+        res.documents.map(doc =>
+          databases.deleteDocument(DATABASE_ID, COLLECTION_MESSAGES, doc.$id)
+        )
+      );
+
+      if (res.documents.length < 100) keepGoing = false;
+    }
+  } catch (err) {
+    console.error("Clear error:", err);
+    // UI already cleared, DB might have partial delete — acceptable
+  }
+}
+
+function trimChatToMax30() {
+  // Only trims the DISPLAY — never touches the database.
+  // This ensures UI shows max 30 messages without deleting any data.
+  const realMessages = Array.from(chatMessages.querySelectorAll(".chat-message:not(.status)"));
+  while (realMessages.length > 30) {
+    const oldestMsg = realMessages.shift();
+    oldestMsg.remove();
+  }
+}
+
+async function cleanUpOldMessages() {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      [Query.orderDesc('createdAt'), Query.offset(30), Query.limit(10)]
+    );
+
+    for (const doc of response.documents) {
+      await databases.deleteDocument(DATABASE_ID, COLLECTION_MESSAGES, doc.$id);
+    }
+  } catch (err) {
+    console.error("Cleanup error:", err);
+  }
+}
+
+async function sendChatMessage() {
+  const message = chatInput.innerText.trim();
+  if (!message) return;
+
+  // Mode 1: Edit existing message
+  if (editingMessageId) {
+    const msgId = editingMessageId;
+    cancelReply();
+    try {
+      const updatedDoc = await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTION_MESSAGES,
+        msgId,
+        { text: message, isEdited: true }
+      );
+      updateChatMessageUI(updatedDoc);
+    } catch (err) {
+      alert("Failed to edit message.");
+    }
+    return;
+  }
+
+  // Mode 2: Send new message (with optional reply)
+  const payload = {
+    sender: loggedInUser,
+    text: message,
+    createdAt: new Date().toISOString()
+  };
+
+  if (activeReplyTo) {
+    payload.replyTo = JSON.stringify(activeReplyTo);
+  }
+
+  cancelReply();
+
+  try {
+    const newDoc = await databases.createDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      ID.unique(),
+      payload
+    );
+    addChatMessageDoc(newDoc, "mine");
+    trimChatToMax30();
+    // NOTE: cleanUpOldMessages() intentionally removed.
+    // It was deleting old messages from the database permanently,
+    // causing messages to disappear for the other user.
+    // We only trim the UI display to 30 — old messages stay safe in DB.
+  } catch (error) {
+    console.error(error);
+    alert("Failed to send message. Make sure Appwrite attributes are configured.");
+  }
+}
+
+/* ==================== EMOJI / GIF PICKER ==================== */
+
+const GIPHY_API_KEY = "FN9GOy48CMyQvN0MmunG1ATaWyLDsqQA";
+let pickerOpen = false;
+let currentPickerTab = "emoji";
+let gifSearchTimeout = null;
+
+// Populate emoji grid on first open
+function populateEmojiTab() {
+  const container = document.getElementById("content-emoji");
+  if (container.children.length > 0) return; // already populated
+  ALL_EMOJIS.forEach(emoji => {
+    const btn = document.createElement("span");
+    btn.className = "panel-emoji-btn";
+    btn.textContent = emoji;
+    btn.onclick = () => {
+      // Insert emoji at cursor position in chat input
+      const input = document.getElementById("chat-input");
+      input.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(emoji));
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        input.innerText += emoji;
+      }
+      closePickerPanel();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function togglePickerPanel() {
+  const panel = document.getElementById("chat-picker-panel");
+  pickerOpen = !pickerOpen;
+  if (pickerOpen) {
+    panel.classList.remove("hidden");
+    populateEmojiTab();
+    if (currentPickerTab === "gif") loadTrendingGifs();
+    // Update emoji btn indicator
+    document.querySelector(".chat-emoji-open-btn").style.color = "#3295ff";
+  } else {
+    closePickerPanel();
+  }
+}
+
+function closePickerPanel() {
+  const panel = document.getElementById("chat-picker-panel");
+  panel.classList.add("hidden");
+  pickerOpen = false;
+  document.querySelector(".chat-emoji-open-btn").style.color = "#9aa8c7";
+}
+
+function switchPickerTab(tab) {
+  currentPickerTab = tab;
+
+  // Update tab active states
+  document.getElementById("tab-emoji").classList.toggle("active", tab === "emoji");
+  document.getElementById("tab-gif").classList.toggle("active", tab === "gif");
+  document.getElementById("content-emoji").classList.toggle("active", tab === "emoji");
+  document.getElementById("content-gif").classList.toggle("active", tab === "gif");
+
+  if (tab === "gif") {
+    const grid = document.getElementById("gif-grid");
+    if (grid.querySelector(".gif-loading")) {
+      loadTrendingGifs();
+    }
+  }
+}
+
+async function loadTrendingGifs() {
+  const grid = document.getElementById("gif-grid");
+  grid.innerHTML = `<div class="gif-loading">⏳ Trending load ho raha hai...</div>`;
+  try {
+    const res = await fetch(
+      `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=pg`
+    );
+    const data = await res.json();
+    renderGifs(data.data);
+  } catch(e) {
+    grid.innerHTML = `<div class="gif-loading">⚠️ GIFs load nahi hue. Internet check karo.</div>`;
+  }
+}
+
+async function searchGifs() {
+  const query = document.getElementById("gif-search-input").value.trim();
+  if (!query) { loadTrendingGifs(); return; }
+
+  const grid = document.getElementById("gif-grid");
+  grid.innerHTML = `<div class="gif-loading">🔍 "${query}" search ho raha hai...</div>`;
+
+  try {
+    const res = await fetch(
+      `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg`
+    );
+    const data = await res.json();
+    renderGifs(data.data);
+  } catch(e) {
+    grid.innerHTML = `<div class="gif-loading">⚠️ Search fail ho gayi.</div>`;
+  }
+}
+
+// Live search on typing
+document.addEventListener("DOMContentLoaded", () => {
+  const gifSearchInput = document.getElementById("gif-search-input");
+  if (gifSearchInput) {
+    gifSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { searchGifs(); return; }
+      clearTimeout(gifSearchTimeout);
+      gifSearchTimeout = setTimeout(searchGifs, 600);
+    });
+  }
+});
+
+function renderGifs(gifs) {
+  const grid = document.getElementById("gif-grid");
+  grid.innerHTML = "";
+  if (!gifs || gifs.length === 0) {
+    grid.innerHTML = `<div class="gif-loading">Koi GIF nahi mili 😕</div>`;
+    return;
+  }
+  gifs.forEach(gif => {
+    const previewUrl = gif.images.fixed_height_small.url;
+    const originalUrl = gif.images.original.url;
+
+    const item = document.createElement("div");
+    item.className = "gif-item";
+    item.style.cssText = "width:100%;height:100px;overflow:hidden;border-radius:8px;cursor:pointer;background:#0d1117;";
+
+    const img = document.createElement("img");
+    img.src = previewUrl;
+    img.alt = gif.title || "GIF";
+    img.loading = "lazy";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+
+    item.appendChild(img);
+    item.onclick = () => sendGifMessage(originalUrl, gif.title || "GIF");
+    grid.appendChild(item);
+  });
+}
+
+async function sendGifMessage(gifUrl, gifTitle) {
+  closePickerPanel();
+
+  const payload = {
+    sender: loggedInUser,
+    text: `[GIF]${gifUrl}`,   // store as special marker
+    createdAt: new Date().toISOString()
+  };
+
+  if (activeReplyTo) {
+    payload.replyTo = JSON.stringify(activeReplyTo);
+    cancelReply();
+  }
+
+  try {
+    const newDoc = await databases.createDocument(
+      DATABASE_ID,
+      COLLECTION_MESSAGES,
+      ID.unique(),
+      payload
+    );
+    addChatMessageDoc(newDoc, "mine");
+    trimChatToMax30();
+  } catch (error) {
+    console.error(error);
+    alert("GIF send nahi ho saka.");
+  }
+}
+
+// Close picker when clicking outside
+document.addEventListener("click", (e) => {
+  if (!pickerOpen) return;
+  const panel = document.getElementById("chat-picker-panel");
+  const emojiBtn = document.querySelector(".chat-emoji-open-btn");
+  if (!panel.contains(e.target) && !emojiBtn.contains(e.target)) {
+    closePickerPanel();
+  }
+});
+
+document.getElementById("chat-send-btn").addEventListener("click", sendChatMessage);
+document.getElementById("modal-reset-btn").addEventListener("click", handleRestart);
+restartIcon.addEventListener("click", handleRestart);
+pauseIcon.addEventListener("click", togglePause);
+settingsIcon.addEventListener("click", () => showPage("settings-page"));
+</script>
+
+</body>
+</html>
