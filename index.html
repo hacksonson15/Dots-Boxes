@@ -86,6 +86,7 @@
       </div>
     </div>
     <div class="chat-header-actions">
+      <button id="video-room-btn" onclick="openVideoRoom()" style="width:auto;margin:0;padding:5px 10px;font-size:11px;background:rgba(100,160,255,.15);border:1px solid rgba(100,160,255,.3);color:#64a0ff;border-radius:16px;">📹</button>
       <button id="clear-chat-btn" onclick="clearAllChats()" style="width:auto;margin:0;padding:5px 10px;font-size:11px;background:rgba(255,60,60,.15);border:1px solid rgba(255,80,80,.3);color:#ff6b6b;border-radius:16px;">🗑</button>
       <button id="chat-play-btn" onclick="showPage('game-mode-page')" style="border-radius:16px;">🎮 Play</button>
     </div>
@@ -186,7 +187,55 @@
     <button id="modal-reset-btn">Play Again</button>
   </div>
 </div>
+<!-- Video Room Modal -->
+<div id="video-room-modal" class="video-room-overlay hidden">
+  <div class="video-room-panel">
+    <div class="video-room-header">
+      <span class="video-room-title">📹 Video Room</span>
+      <button onclick="closeVideoRoom()" class="video-room-close">✕</button>
+    </div>
+    <div class="video-room-tabs">
+      <button class="vr-tab active" id="vr-tab-upload" onclick="switchVRTab('upload')">⬆ Upload</button>
+      <button class="vr-tab" id="vr-tab-play" onclick="switchVRTab('play')">▶ Play</button>
+    </div>
 
+    <!-- Upload Tab -->
+    <div class="vr-content" id="vr-content-upload">
+      <div class="vr-upload-area" onclick="document.getElementById('video-file-input').click()">
+        <div class="vr-upload-icon">🎬</div>
+        <div class="vr-upload-text">Tap to select video</div>
+        <div class="vr-upload-subtext">MP4, WebM, MOV supported</div>
+      </div>
+      <input type="file" id="video-file-input" accept="video/*" style="display:none" onchange="handleVideoSelect(this)">
+      <div id="vr-upload-progress" class="vr-progress-container hidden">
+        <div class="vr-progress-label">
+          <span id="vr-progress-filename">video.mp4</span>
+          <span id="vr-progress-percent">0%</span>
+        </div>
+        <div class="vr-progress-bar-bg">
+          <div class="vr-progress-bar-fill" id="vr-progress-fill" style="width:0%"></div>
+        </div>
+        <div id="vr-upload-status" class="vr-upload-status">Uploading...</div>
+      </div>
+    </div>
+
+    <!-- Play Tab -->
+    <div class="vr-content hidden" id="vr-content-play">
+      <div id="vr-video-list" class="vr-video-list">
+        <div class="vr-empty">No videos uploaded yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- In-Chat Video Player -->
+<div id="chat-video-player" class="chat-video-player hidden">
+  <div class="cvp-header">
+    <span id="cvp-title">Now Playing</span>
+    <button onclick="closeChatVideo()" class="cvp-close">✕</button>
+  </div>
+  <video id="cvp-video" class="cvp-video" controls autoplay></video>
+</div>
 <script src="script.js"></script>
 
 </body>
