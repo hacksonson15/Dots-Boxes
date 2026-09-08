@@ -125,7 +125,9 @@
       <button class="chat-emoji-open-btn" type="button" title="Emoji / GIF" onclick="togglePickerPanel()">😊</button>
       <div id="chat-input" class="fake-input-chat" contenteditable="true" data-placeholder="Type a message..." spellcheck="false"></div>
       <div class="chat-right-btns">
-        <button class="chat-icon-btn" type="button" title="Mic" onclick="return false;">🎤</button>
+       <button class="chat-icon-btn" type="button" title="Voice Message" id="mic-btn" onmousedown="startVoiceRecording()" onmouseup="stopVoiceRecording()" ontouchstart="startVoiceRecording(event)" ontouchend="stopVoiceRecording(event)">🎤</button>
+<button class="chat-icon-btn" type="button" title="Send Image" id="image-btn" onclick="document.getElementById('image-file-input').click()">🖼️</button>
+<input type="file" id="image-file-input" accept="image/*" style="display:none" onchange="handleImageFileSelect(this)">
         <button class="chat-send-btn" type="button" id="chat-send-btn" title="Send">➤</button>
       </div>
     </div>
