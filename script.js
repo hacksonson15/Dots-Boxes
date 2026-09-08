@@ -1806,3 +1806,156 @@ document.getElementById("modal-reset-btn").addEventListener("click", handleResta
 restartIcon.addEventListener("click", handleRestart);
 pauseIcon.addEventListener("click", togglePause);
 settingsIcon.addEventListener("click", () => showPage("settings-page"));
+/* ══════════════════════════════════════
+   VIDEO ROOM  —  Appwrite Storage
+══════════════════════════════════════ */
+const VIDEO_BUCKET_ID = 'YOUR_VIDEO_BUCKET_ID'; // ← Appwrite bucket ID yahan likho
+
+function openVideoRoom() {
+  document.getElementById('video-room-modal').classList.remove('hidden');
+  loadVideoList();
+}
+function closeVideoRoom() {
+  document.getElementById('video-room-modal').classList.add('hidden');
+}
+function switchVRTab(tab) {
+  ['upload','play'].forEach(t => {
+    document.getElementById('vr-tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('vr-content-'+t).classList.toggle('hidden', t!==tab);
+  });
+  if(tab==='play') loadVideoList();
+}
+
+/* ── Upload ── */
+async function handleVideoSelect(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const progressBox = document.getElementById('vr-upload-progress');
+  const fillBar     = document.getElementById('vr-progress-fill');
+  const pct         = document.getElementById('vr-progress-percent');
+  const status      = document.getElementById('vr-upload-status');
+  document.getElementById('vr-progress-filename').textContent = file.name;
+  progressBox.classList.remove('hidden');
+  fillBar.style.width = '0%';
+  pct.textContent = '0%';
+  status.textContent = 'Uploading...';
+
+  try {
+    const fileId = ID.unique();
+    // Fake progress animation while Appwrite uploads
+    let fakeP = 0;
+    const ticker = setInterval(() => {
+      fakeP = Math.min(fakeP + Math.random()*8, 90);
+      fillBar.style.width = fakeP+'%';
+      pct.textContent = Math.floor(fakeP)+'%';
+    }, 200);
+
+    const result = await storage.createFile(VIDEO_BUCKET_ID, fileId, file);
+
+    clearInterval(ticker);
+    fillBar.style.width = '100%';
+    pct.textContent = '100%';
+    status.textContent = '✅ Upload complete!';
+
+    // Save metadata in Appwrite DB or just use file attributes
+    input.value = '';
+    setTimeout(() => {
+      progressBox.classList.add('hidden');
+      switchVRTab('play');
+    }, 1200);
+  } catch(err) {
+    clearInterval(ticker);
+    status.textContent = '❌ Upload failed: ' + err.message;
+    console.error(err);
+  }
+}
+
+/* ── Video List ── */
+async function loadVideoList() {
+  const list = document.getElementById('vr-video-list');
+  list.innerHTML = '<div class="vr-empty">Loading...</div>';
+  try {
+    const res = await storage.listFiles(VIDEO_BUCKET_ID);
+    if(!res.files.length){
+      list.innerHTML = '<div class="vr-empty">No videos uploaded yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    res.files.forEach(f => {
+      const sizeMB = (f.sizeOriginal/1024/1024).toFixed(1);
+      const date   = new Date(f.$createdAt).toLocaleDateString();
+      const item   = document.createElement('div');
+      item.className = 'vr-video-item';
+      item.innerHTML = `
+        <div class="vr-video-thumb">🎬</div>
+        <div class="vr-video-info">
+          <div class="vr-video-name">${f.name}</div>
+          <div class="vr-video-meta">${sizeMB} MB · ${date}</div>
+        </div>
+        <div class="vr-video-actions">
+          <button class="vr-btn-play" onclick="playChatVideo('${f.$id}','${f.name}')">▶</button>
+          <button class="vr-btn-delete" onclick="deleteVideo('${f.$id}')">🗑</button>
+        </div>`;
+      list.appendChild(item);
+    });
+  } catch(err) {
+    list.innerHTML = '<div class="vr-empty">Error loading videos.</div>';
+    console.error(err);
+  }
+}
+
+/* ── Play in Chat ── */
+function playChatVideo(fileId, fileName) {
+  closeVideoRoom();
+  const url = storage.getFileView(VIDEO_BUCKET_ID, fileId);
+  const player = document.getElementById('chat-video-player');
+  document.getElementById('cvp-title').textContent = '▶ ' + fileName;
+  document.getElementById('cvp-video').src = url;
+  player.classList.remove('hidden');
+  document.querySelector('.chat-container')?.classList.add('chat-video-active');
+
+  // Send a video-card message in chat so both users see it
+  sendVideoChatMessage(fileName, fileId);
+}
+
+function closeChatVideo() {
+  const player = document.getElementById('chat-video-player');
+  player.classList.add('hidden');
+  document.getElementById('cvp-video').pause();
+  document.getElementById('cvp-video').src = '';
+  document.querySelector('.chat-container')?.classList.remove('chat-video-active');
+}
+
+/* Send video notice message in chat */
+function sendVideoChatMessage(fileName, fileId) {
+  if(typeof sendMessage === 'function') {
+    // If your chat uses a sendMessage(text) function, adapt here
+    // Otherwise we directly add to Appwrite chat DB
+  }
+  // Appwrite realtime will broadcast to both users
+  try {
+    const url = storage.getFileView(VIDEO_BUCKET_ID, fileId);
+    // Store a special message type in your chat collection
+    if(typeof databases !== 'undefined' && typeof CHAT_COLLECTION_ID !== 'undefined') {
+      databases.createDocument(DATABASE_ID, CHAT_COLLECTION_ID, ID.unique(), {
+        userId: currentUserId || 'unknown',
+        type: 'video',
+        text: `🎬 ${fileName}`,
+        videoId: fileId,
+        videoUrl: url.toString(),
+        createdAt: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+/* ── Delete ── */
+async function deleteVideo(fileId) {
+  if(!confirm('Delete this video?')) return;
+  try {
+    await storage.deleteFile(VIDEO_BUCKET_ID, fileId);
+    loadVideoList();
+  } catch(err) {
+    alert('Delete failed: ' + err.message);
+  }
+}
