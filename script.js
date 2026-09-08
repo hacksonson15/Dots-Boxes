@@ -397,6 +397,11 @@ function listenToGameUpdates(gameId) {
         }
 
         if (doc.isRestarted) {
+          // Sync grid size from DB before restarting
+          if (doc.gridSize && doc.gridSize !== gridSize) {
+            gridSize = doc.gridSize;
+            gridSelect.value = String(doc.gridSize);
+          }
           initGame(true);
           if (myRole === P1) {
             databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, gameId, { isRestarted: false });
@@ -489,6 +494,24 @@ function initGame(fullReset = false) {
     setTimeout(aiMove, 500);
   }
 }
+
+// Grid size change: instant game reset without refresh
+// Online mode: grid change dono players ko sync hota hai
+gridSelect.addEventListener("change", async () => {
+  const newSize = parseInt(gridSelect.value);
+  gridSize = newSize;
+
+  if (gameMode === "online" && currentGameDoc) {
+    try {
+      await databases.updateDocument(DATABASE_ID, COLLECTION_GAMES, currentGameDoc.$id, {
+        gridSize: newSize,
+        isRestarted: true
+      });
+    } catch(e) { console.warn("Grid sync failed:", e); }
+  } else {
+    initGame(true);
+  }
+});
 
 // Sizes the board's dots/lines/boxes so the whole grid fills the space
 // available between the header and footer — bigger cells on small grids
@@ -934,7 +957,7 @@ function addChatMessageDoc(doc, forceType = null) {
     messageText.appendChild(gifImg);
 
   } else if (doc.text && doc.text.startsWith("[IMG]")) {
-    // Image message
+    // Image message (base64)
     const imgData = doc.text.slice(5);
     const container = document.createElement("div");
     container.className = "img-msg-container";
@@ -943,6 +966,20 @@ function addChatMessageDoc(doc, forceType = null) {
     img.alt = "Image";
     img.loading = "lazy";
     img.onclick = (e) => { e.stopPropagation(); openFullscreenImage(imgData); };
+    container.appendChild(img);
+    messageText.appendChild(container);
+
+  } else if (doc.text && doc.text.startsWith("[IMG_URL]")) {
+    // Image from URL (Google copy-paste) — GIF animate hogi automatically
+    const imgUrl = doc.text.slice(9);
+    const container = document.createElement("div");
+    container.className = "img-msg-container";
+    const img = document.createElement("img");
+    img.src = imgUrl;
+    img.alt = "Image";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.onclick = (e) => { e.stopPropagation(); openFullscreenImage(imgUrl); };
     container.appendChild(img);
     messageText.appendChild(container);
 
@@ -1449,11 +1486,69 @@ document.addEventListener("paste", (e) => {
   const items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
 
+  // Priority 1: Actual image file (folder se copy kiya hua)
   for (let i = 0; i < items.length; i++) {
     if (items[i].type.startsWith("image/")) {
       e.preventDefault();
       const file = items[i].getAsFile();
-      if (file) showImagePreviewBar(file);
+      if (!file) continue;
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Image 4MB se badi hai. Chhoti image use karo.");
+        return;
+      }
+      showImagePreviewBar(file);
+      return;
+    }
+  }
+
+  // Priority 2: HTML clipboard (Google se copy ki gai image)
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type === "text/html") {
+      e.preventDefault();
+      items[i].getAsString(async (html) => {
+        const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (!match) return;
+        const imgUrl = match[1];
+
+        // Agar data URL ho (already base64)
+        if (imgUrl.startsWith("data:image")) {
+          try {
+            const res = await fetch(imgUrl);
+            const blob = await res.blob();
+            if (blob.size > 4 * 1024 * 1024) { alert("Image 4MB se badi hai."); return; }
+            const file = new File([blob], "pasted.png", { type: blob.type || "image/png" });
+            showImagePreviewBar(file);
+          } catch(err) { console.warn("data URL paste failed:", err); }
+          return;
+        }
+
+        // External URL — fetch karke file banao
+        try {
+          const res = await fetch(imgUrl);
+          if (!res.ok) throw new Error("fetch failed");
+          const blob = await res.blob();
+          if (!blob.type.startsWith("image/")) throw new Error("not image");
+          if (blob.size > 4 * 1024 * 1024) { alert("Image 4MB se badi hai."); return; }
+          const file = new File([blob], "google-img.jpg", { type: blob.type });
+          showImagePreviewBar(file);
+        } catch(err) {
+          // CORS block — URL directly message mein send karo (GIF bhi animate hogi)
+          const payload = {
+            sender: loggedInUser,
+            text: `[IMG_URL]${imgUrl}`,
+            createdAt: new Date().toISOString()
+          };
+          try {
+            const newDoc = await databases.createDocument(
+              DATABASE_ID, COLLECTION_MESSAGES, ID.unique(), payload
+            );
+            addChatMessageDoc(newDoc, "mine");
+            trimChatToMax30();
+          } catch(e2) {
+            alert("Image paste nahi ho saki. CORS restriction hai is image pe.");
+          }
+        }
+      });
       return;
     }
   }
