@@ -1809,7 +1809,7 @@ settingsIcon.addEventListener("click", () => showPage("settings-page"));
 /* ══════════════════════════════════════
    VIDEO ROOM  —  Appwrite Storage
 ══════════════════════════════════════ */
-const VIDEO_BUCKET_ID = 'YOUR_VIDEO_BUCKET_ID'; // ← Appwrite bucket ID yahan likho
+const VIDEO_BUCKET_ID = 'videos';
 
 function openVideoRoom() {
   document.getElementById('video-room-modal').classList.remove('hidden');
