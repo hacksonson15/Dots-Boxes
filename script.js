@@ -918,21 +918,50 @@ function addChatMessageDoc(doc, forceType = null) {
     } catch(e) {}
   }
 
-  // Text Body (or GIF)
+  // Text Body (GIF / Image / Audio / Text)
   const messageText = document.createElement("div");
   messageText.className = "msg-body";
+
   if (doc.text && doc.text.startsWith("[GIF]")) {
+    // GIF message
     const gifUrl = doc.text.slice(5);
     const gifImg = document.createElement("img");
     gifImg.src = gifUrl;
     gifImg.className = "gif-msg-img";
     gifImg.alt = "GIF";
     gifImg.loading = "lazy";
-    gifImg.onclick = (e) => e.stopPropagation();
+    gifImg.onclick = (e) => { e.stopPropagation(); openFullscreenImage(gifUrl); };
     messageText.appendChild(gifImg);
+
+  } else if (doc.text && doc.text.startsWith("[IMG]")) {
+    // Image message
+    const imgData = doc.text.slice(5);
+    const container = document.createElement("div");
+    container.className = "img-msg-container";
+    const img = document.createElement("img");
+    img.src = imgData;
+    img.alt = "Image";
+    img.loading = "lazy";
+    img.onclick = (e) => { e.stopPropagation(); openFullscreenImage(imgData); };
+    container.appendChild(img);
+    messageText.appendChild(container);
+
+  } else if (doc.text && doc.text.startsWith("[AUDIO]")) {
+    // Voice message
+    const audioData = doc.text.slice(7);
+    const audioWrapper = document.createElement("div");
+    audioWrapper.className = "audio-msg-player";
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = audioData;
+    audio.preload = "metadata";
+    audioWrapper.appendChild(audio);
+    messageText.appendChild(audioWrapper);
+
   } else {
     messageText.textContent = doc.text;
   }
+
   messageBox.appendChild(messageText);
 
   // Reactions Display
@@ -1241,7 +1270,205 @@ async function cleanUpOldMessages() {
   }
 }
 
+/* ==================== IMAGE / AUDIO HELPERS ==================== */
+
+// Holds a File object (from gallery picker or clipboard paste) waiting to be sent
+let pendingImageFile = null;
+
+function showImagePreviewBar(file) {
+  const old = document.getElementById("img-preview-bar");
+  if (old) old.remove();
+
+  pendingImageFile = file;
+  const bar = document.createElement("div");
+  bar.className = "img-preview-bar";
+  bar.id = "img-preview-bar";
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    bar.innerHTML = `
+      <img src="${e.target.result}" alt="preview">
+      <span>Image ready to send</span>
+      <span class="cancel-img-btn" onclick="cancelImagePreview()">✕</span>
+    `;
+  };
+  reader.readAsDataURL(file);
+
+  const inputWrapper = document.querySelector(".chat-input-wrapper");
+  inputWrapper.insertBefore(bar, inputWrapper.firstChild);
+}
+
+function cancelImagePreview() {
+  pendingImageFile = null;
+  const bar = document.getElementById("img-preview-bar");
+  if (bar) bar.remove();
+}
+
+function handleImageFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = "";
+  showImagePreviewBar(file);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendImageMessage(file) {
+  try {
+    const base64 = await fileToBase64(file);
+    const payload = {
+      sender: loggedInUser,
+      text: `[IMG]${base64}`,
+      createdAt: new Date().toISOString()
+    };
+    if (activeReplyTo) {
+      payload.replyTo = JSON.stringify(activeReplyTo);
+      cancelReply();
+    }
+    const newDoc = await databases.createDocument(
+      DATABASE_ID, COLLECTION_MESSAGES, ID.unique(), payload
+    );
+    addChatMessageDoc(newDoc, "mine");
+    trimChatToMax30();
+    cancelImagePreview();
+  } catch (err) {
+    console.error("Image send failed:", err);
+    alert("Image send nahi ho saki. Check karo image size chhoti ho (4MB se kam).");
+  }
+}
+
+// Opens a fullscreen overlay to view any image/GIF
+function openFullscreenImage(src) {
+  const existing = document.getElementById("fullscreen-img-viewer");
+  if (existing) existing.remove();
+
+  const viewer = document.createElement("div");
+  viewer.id = "fullscreen-img-viewer";
+  viewer.innerHTML = `
+    <button class="viewer-close" onclick="document.getElementById('fullscreen-img-viewer').remove()">✕</button>
+    <img src="${src}" alt="Full Image">
+  `;
+  viewer.addEventListener("click", (e) => {
+    if (e.target === viewer) viewer.remove();
+  });
+  document.body.appendChild(viewer);
+}
+
+/* ==================== VOICE RECORDING ==================== */
+
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function startVoiceRecording(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (isRecording) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    isRecording = true;
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
+
+    mediaRecorder.start();
+
+    // Show recording indicator in input wrapper
+    const inputWrapper = document.querySelector(".chat-input-wrapper");
+    const indicator = document.createElement("div");
+    indicator.className = "recording-indicator";
+    indicator.id = "recording-indicator";
+    indicator.innerHTML = `<div class="recording-dot"></div><span>Recording... (release to send)</span>`;
+    inputWrapper.insertBefore(indicator, inputWrapper.firstChild);
+
+    document.getElementById("mic-btn").classList.add("recording");
+  } catch (err) {
+    console.error("Mic access denied:", err);
+    alert("Microphone access dijiye. Browser settings mein permission allow karein.");
+  }
+}
+
+async function stopVoiceRecording(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!isRecording || !mediaRecorder) return;
+
+  isRecording = false;
+  document.getElementById("mic-btn").classList.remove("recording");
+
+  const indicator = document.getElementById("recording-indicator");
+  if (indicator) indicator.remove();
+
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(track => track.stop());
+
+  mediaRecorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Audio = reader.result;
+      const payload = {
+        sender: loggedInUser,
+        text: `[AUDIO]${base64Audio}`,
+        createdAt: new Date().toISOString()
+      };
+      if (activeReplyTo) {
+        payload.replyTo = JSON.stringify(activeReplyTo);
+        cancelReply();
+      }
+      try {
+        const newDoc = await databases.createDocument(
+          DATABASE_ID, COLLECTION_MESSAGES, ID.unique(), payload
+        );
+        addChatMessageDoc(newDoc, "mine");
+        trimChatToMax30();
+      } catch (err) {
+        console.error("Audio send failed:", err);
+        alert("Voice message send nahi ho saka.");
+      }
+    };
+    reader.readAsDataURL(audioBlob);
+  };
+}
+
+/* ==================== CLIPBOARD IMAGE PASTE ==================== */
+
+document.addEventListener("paste", (e) => {
+  const chatPage = document.getElementById("chat-page");
+  if (chatPage.classList.contains("hidden")) return;
+
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith("image/")) {
+      e.preventDefault();
+      const file = items[i].getAsFile();
+      if (file) showImagePreviewBar(file);
+      return;
+    }
+  }
+});
+
+/* ==================== SEND CHAT MESSAGE ==================== */
+
 async function sendChatMessage() {
+  // If image pending, send it
+  if (pendingImageFile) {
+    await sendImageMessage(pendingImageFile);
+    chatInput.innerText = "";
+    return;
+  }
+
   const message = chatInput.innerText.trim();
   if (!message) return;
 
